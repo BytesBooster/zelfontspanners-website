@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contact - De Zelfontspanners">
+    <title>Contact - De Zelfontspanners</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-page">
+    <!-- Navigation Component - wordt geladen via components.js -->
+    <div id="navigation-placeholder"></div>
+
+    <!-- Contact Section -->
+    <section class="portfolio-page">
+        <div class="container">
+            <div class="section-header">
+                <h1>Contact</h1>
+                <p class="section-subtitle">Contact opnemen en/of lid worden?</p>
+            </div>
+
+            <!-- Single Contact Box -->
+            <div class="contact-single-box">
+                <div class="contact-box-content">
+                    <!-- Left: Information -->
+                    <div class="contact-info-section">
+                        <h2>Lid worden?</h2>
+                        <p>
+                            Ben je geïnteresseerd in fotografie en lijkt het je leuk om samen met anderen op pad te gaan? Dan ben je van harte welkom bij De Zelfontspanners!
+                        </p>
+                        <p>
+                            Wij zijn een gezellige fotoclub waar alles mag en er niets moet. Elke maand gaan we op zondagochtend gezamenlijk naar een mooie locatie om naar hartenlust te fotograferen. Er is geen druk, geen verplichtingen - alleen de passie voor fotografie en het plezier van samen op pad zijn.
+                        </p>
+                        <p>
+                            Wil je meer weten of een keer mee komen kennismaken? Stuur ons gerust een bericht via het contactformulier hiernaast of neem contact op via <a href="mailto:vanzijderveld@gmail.com">vanzijderveld@gmail.com</a>. We vertellen je graag meer over onze activiteiten en beantwoorden al je vragen.
+                        </p>
+                        <p>
+                            Je kunt natuurlijk ook een keer meegaan tijdens een van onze fotowandelingen om te zien of het wat voor je is. Gewoon gezellig meelopen en kennismaken met de groep - zonder verplichtingen!
+                        </p>
+                        <p class="contact-cta-simple">
+                            Heb je vragen of wil je meer informatie? Aarzel niet en neem contact met ons op!
+                        </p>
+
+                        <div class="contact-divider"></div>
+
+                        <h2>Contactgegevens</h2>
+                        <div class="contact-simple-details">
+                            <div class="contact-simple-item">
+                                <strong>Contactpersoon:</strong> Bert<br>
+                                <a href="mailto:vanzijderveld@gmail.com">vanzijderveld@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Form -->
+                    <div class="contact-form-section">
+                        <h2>Stuur een bericht</h2>
+                        <div id="formMessage" class="form-message" style="display: none;"></div>
+                        <form class="contact-form-new" id="contactForm" novalidate>
+                            <div class="form-group">
+                                <label for="name">Naam *</label>
+                                <input type="text" id="name" name="name" required minlength="2" placeholder="Je volledige naam">
+                                <span class="error-message" id="nameError"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">E-mail adres *</label>
+                                <input type="email" id="email" name="email" required placeholder="jouw@email.nl">
+                                <span class="error-message" id="emailError"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="phone">Telefoonnummer (optioneel)</label>
+                                <input type="tel" id="phone" name="phone" placeholder="06 12345678">
+                                <span class="error-message" id="phoneError"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="message">Bericht *</label>
+                                <textarea id="message" name="message" rows="6" placeholder="Vertel ons iets over jezelf, je interesse in fotografie, of stel je vraag..." required></textarea>
+                                <span class="error-message" id="messageError"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="photos">Foto's bijvoegen (optioneel - max 5 foto's)</label>
+                                <div class="file-upload-wrapper">
+                                    <input type="file" id="photos" name="photos" multiple accept="image/jpeg,image/jpg" />
+                                    <label for="photos" class="file-upload-label">
+                                        <span class="file-upload-icon">📷</span>
+                                        <span class="file-upload-text">Kies foto's of sleep ze hierheen</span>
+                                        <span class="file-upload-hint">Maximaal 5 JPEG bestanden</span>
+                                    </label>
+                                    <div id="fileList" class="file-list"></div>
+                                </div>
+                                <small>Je kunt optioneel een aantal foto's delen zodat we je stijl kunnen zien. JPEG formaat, maximaal 5MB per foto.</small>
+                            </div>
+                            
+                            <div class="form-submit-wrapper">
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <span class="btn-text">Verstuur bericht</span>
+                                    <span class="btn-loading" style="display: none;">Verzenden...</span>
+                                </button>
+                                <p class="form-note">* Verplichte velden</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component - wordt geladen via components.js -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Load components first, then main script -->
+    <script src="components.js"></script>
+    <script>
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponent('navigation', '#navigation-placeholder', 'contact');
+            loadComponent('footer', '#footer-placeholder');
+        });
+    </script>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="contact.js"></script>
+</body>
+</html>

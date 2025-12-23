@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="De Zelfontspanners - Ontdek de kunst van fotografie met ons">
+    <title>De Zelfontspanners</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-page">
+    <!-- Navigation Component - wordt geladen via components.js -->
+    <div id="navigation-placeholder"></div>
+
+    <!-- Hero Section -->
+    <section id="home" class="home-hero">
+        <div class="home-hero-slider" id="heroSlider">
+            <!-- Slider images will be populated by JavaScript -->
+        </div>
+        <div class="home-hero-overlay"></div>
+        <div class="home-hero-content">
+            <h1 class="home-hero-title">De Zelfontspanners</h1>
+            <p class="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
+            <div class="home-hero-actions">
+                <a href="over-ons.html" class="btn btn-secondary">Meer Weten</a>
+                <a href="leden.html" class="btn btn-secondary">Bekijk Leden</a>
+            </div>
+        </div>
+        <div class="home-hero-nav">
+            <button class="hero-slider-prev" id="heroSliderPrev" aria-label="Vorige foto">‹</button>
+            <button class="hero-slider-next" id="heroSliderNext" aria-label="Volgende foto">›</button>
+        </div>
+        <div class="home-hero-dots" id="heroSliderDots">
+            <!-- Dots will be populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="portfolio-page">
+        <div class="container">
+            <div class="section-header">
+                <h1>Over Ons</h1>
+                <p class="section-subtitle">Passie voor fotografie</p>
+            </div>
+            <div class="about-single-box">
+                <div class="about-content">
+                    <p>
+                        Welkom bij De Zelfontspanners! Wij zijn een actieve vereniging van fotografieliefhebbers 
+                        die samen komen om kennis te delen, te leren en te genieten van de kunst van fotografie.
+                    </p>
+                    <ul class="about-simple-list">
+                        <li>Workshops en excursies</li>
+                        <li>Maandelijkse fotowedstrijden</li>
+                        <li>Feedback en kennis delen</li>
+                        <li>Gezellige gemeenschap</li>
+                    </ul>
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <a href="over-ons.html" class="btn btn-secondary">Lees Meer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component - wordt geladen via components.js -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Load components first, then main script -->
+    <script src="components.js"></script>
+    <script src="portfolio-data.js"></script>
+    <script>
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponent('navigation', '#navigation-placeholder', 'home');
+            loadComponent('footer', '#footer-placeholder');
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

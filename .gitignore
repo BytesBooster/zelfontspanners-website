@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Production
+/build
+/dist
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# Typescript
+*.tsbuildinfo
+
+# PM2
+.pm2
+
+# Logs
+logs/
+*.log
+
+# Development scripts (niet nodig voor productie)
+create-portfolio-folders.js
+create-portfolio-folders.ps1
+download-albert-photos.js
+download-all-portfolios.js
+add-albert-photos-to-portfolio.js
+reset-passwords.js
+remove-alfred-account.js
+load-mock-data.js
+clear-mock-data.js
+
+# Test/Development HTML bestanden
+test-mock-data.html
+fix-2025-to-2026.html
+add-2026-excursies.html
+remove-test-event.html
+
+# Oude HTML/JS bestanden (behouden voor referentie, maar niet in Git)
+# *.html
+# *.js
+# styles.css (behouden, maar wordt gebruikt in Next.js)

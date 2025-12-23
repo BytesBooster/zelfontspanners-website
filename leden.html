@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Leden van De Zelfontspanners - Ontmoet onze fotografieliefhebbers">
+    <title>Leden - De Zelfontspanners</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-page">
+    <!-- Navigation Component - wordt geladen via components.js -->
+    <div id="navigation-placeholder"></div>
+
+    <!-- Members Section -->
+    <section class="members-page">
+        <div class="container">
+            <div class="section-header">
+                <h1>Onze Leden</h1>
+                <p class="section-subtitle">Ontmoet de fotografieliefhebbers van De Zelfontspanners</p>
+            </div>
+            
+            <!-- Active Members -->
+            <div class="members-section">
+                <h2 class="members-category-title">Actieve Leden</h2>
+                <div class="members-grid" id="activeMembersGrid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component - wordt geladen via components.js -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Load components first, then main script -->
+    <script src="components.js"></script>
+    <script>
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponent('navigation', '#navigation-placeholder', 'leden');
+            loadComponent('footer', '#footer-placeholder');
+        });
+    </script>
+    <script src="leden.js"></script>
+</body>
+</html>
+

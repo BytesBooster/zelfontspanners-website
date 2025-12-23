@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Agenda - De Zelfontspanners">
+    <title>Agenda - De Zelfontspanners</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-page">
+    <!-- Navigation Component - wordt geladen via components.js -->
+    <div id="navigation-placeholder"></div>
+
+    <!-- Agenda Section -->
+    <section class="portfolio-page">
+        <div class="container">
+            <div class="section-header">
+                <h1>Agenda</h1>
+                <p class="section-subtitle">Bekijk en voeg evenementen toe aan de agenda</p>
+            </div>
+            
+            <!-- Add Event Button (only for logged-in members) -->
+            <div id="addEventSection" class="agenda-add-section" style="display: none;">
+                <button id="addEventBtn" class="btn btn-primary">+ Evenement Toevoegen</button>
+            </div>
+
+            <!-- Add Event Form Modal -->
+            <div id="addEventModal" class="agenda-modal" style="display: none;">
+                <div class="agenda-modal-content">
+                    <span class="agenda-modal-close" id="closeEventModal">&times;</span>
+                    <h2>Nieuw Evenement Toevoegen</h2>
+                    <form id="addEventForm">
+                        <div class="form-group">
+                            <label for="eventTitle">Titel *</label>
+                            <input type="text" id="eventTitle" name="title" required maxlength="100" placeholder="Bijv. Maandelijkse vergadering">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDate">Datum *</label>
+                            <input type="date" id="eventDate" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventTime">Tijd</label>
+                            <input type="time" id="eventTime" name="time" placeholder="Bijv. 19:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventLocation">Locatie</label>
+                            <input type="text" id="eventLocation" name="location" maxlength="200" placeholder="Bijv. Clubhuis, Wijchen">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDescription">Beschrijving</label>
+                            <textarea id="eventDescription" name="description" rows="4" maxlength="500" placeholder="Beschrijf het evenement..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventIcon">Icoon (emoji)</label>
+                            <input type="text" id="eventIcon" name="icon" maxlength="2" placeholder="📅" value="📅">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelEventBtn">Annuleren</button>
+                            <button type="submit" class="btn btn-primary">Evenement Toevoegen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Events Grid -->
+            <div class="agenda-grid" id="agendaGrid">
+                <div class="agenda-empty">
+                    <p>Er zijn nog geen evenementen in de agenda.</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
+                        Log in om een evenement toe te voegen.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Empty State (hidden by default, shown via JS if needed) -->
+            <div id="agendaEmpty" class="agenda-empty" style="display: none;">
+                <p>Er zijn nog geen evenementen in de agenda.</p>
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
+                    Log in om een evenement toe te voegen.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component - wordt geladen via components.js -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Load components first, then main script -->
+    <script src="components.js"></script>
+    <script src="auth.js"></script>
+    <script src="agenda.js"></script>
+    <script>
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponent('navigation', '#navigation-placeholder', 'agenda');
+            loadComponent('footer', '#footer-placeholder');
+            
+            // Initialize agenda immediately and also after a delay to ensure everything is loaded
+            if (typeof initializeAgenda === 'function') {
+                initializeAgenda();
+            }
+            
+            setTimeout(() => {
+                if (typeof initializeAgenda === 'function') {
+                    initializeAgenda();
+                } else {
+                    console.error('initializeAgenda function not found');
+                }
+            }, 500);
+        });
+        
+        // Also try to initialize if DOM is already loaded
+        if (document.readyState !== 'loading') {
+            setTimeout(() => {
+                if (typeof initializeAgenda === 'function') {
+                    initializeAgenda();
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
+
