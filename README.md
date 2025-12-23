@@ -1,209 +1,150 @@
-# De Zelfontspanners Website
+# De Zelfontspanners Website - Next.js
 
-Een moderne, responsive website voor De Zelfontspanners gebouwd met HTML, CSS en JavaScript. Deze website vervangt de oude WordPress site en biedt een snellere, modernere ervaring.
+Een moderne, responsive website voor De Zelfontspanners gebouwd met Next.js, React en TypeScript.
 
-## Features
+## 🚀 Features
 
 - 🎨 Modern en responsive design
 - 📱 Volledig mobiel-vriendelijk
-- 📝 Blog sectie met nieuws en updates
-- 🏆 Foto van de maand sectie met winnaars
-- 📅 Agenda met komende activiteiten
+- 📝 Agenda met CRUD functionaliteit
+- 🏆 Foto van de Maand met upload en stemmen
 - 👥 Leden Portfolio galerij
-- 🖼️ Interactieve fotogalerij met filters
-- 📧 Contactformulier met echte contactgegevens
+- 🖼️ Interactieve fotogalerij met likes en comments
+- 📧 Contactformulier met EmailJS integratie
+- 🔐 Leden authenticatie systeem
 - ✨ Smooth scrolling en animaties
 - 🎯 SEO-vriendelijk
 
-## Structuur
+## 🛠️ Technologie Stack
+
+- **Next.js 14** - React framework
+- **TypeScript** - Type-safe JavaScript
+- **React 18** - UI library
+- **PM2** - Process manager voor production
+- **localStorage** - Client-side data storage
+
+## 📦 Installatie
+
+### Vereisten
+- Node.js 18+ 
+- npm of yarn
+
+### Stappen
+
+1. **Clone repository**
+   ```bash
+   git clone [repository-url]
+   cd foto-club-wijchen
+   ```
+
+2. **Installeer dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Development server starten**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
+
+## 🏗️ Build & Production
+
+### Build maken
+```bash
+npm run build
+```
+
+### Production server starten
+```bash
+npm start
+```
+
+### PM2 (Production)
+```bash
+pm2 start ecosystem.config.js
+```
+
+## 📁 Project Structuur
 
 ```
 foto club wijchen/
-├── index.html      # Hoofdpagina
-├── leden.html      # Leden pagina
-├── styles.css      # Styling
-├── script.js       # Interactiviteit voor index.html
-├── leden.js        # Interactiviteit voor leden.html
-├── images/         # (optioneel) Map voor foto's
-│   └── leden/      # (optioneel) Map voor profielfoto's
-└── README.md       # Deze file
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Homepage
+│   ├── agenda/            # Agenda pagina
+│   ├── leden/             # Leden pagina
+│   ├── contact/           # Contact pagina
+│   ├── login/             # Login pagina
+│   ├── portfolio/         # Portfolio bekijken
+│   └── portfolio-manage/  # Portfolio beheer
+├── components/            # React components
+├── lib/                   # Utilities
+├── public/                # Static files
+│   ├── images/            # Images
+│   └── portfolio-data.js  # Portfolio data
+├── package.json
+├── next.config.js
+├── ecosystem.config.js    # PM2 configuratie
+└── deploy.sh              # Deployment script
 ```
 
-## Installatie & Gebruik
+## 🌐 Deployment
 
-### Lokale ontwikkeling
+Zie `NEXTJS-DEPLOYMENT.md` voor volledige deployment instructies naar Plesk.
 
-1. Clone of download deze repository
-2. Open `index.html` in je browser
-3. Of gebruik een lokale server:
+### Quick Start
+1. Upload naar server
+2. `npm install`
+3. `npm run build`
+4. `pm2 start ecosystem.config.js`
+5. Configureer Nginx proxy naar poort 3001
 
-**Met Python:**
-```bash
-python -m http.server 8000
-```
+## 📝 Scripts
 
-**Met Node.js (http-server):**
-```bash
-npx http-server
-```
+- `npm run dev` - Start development server
+- `npm run build` - Maak production build
+- `npm start` - Start production server
+- `npm run lint` - Run linter
 
-**Met PHP:**
-```bash
-php -S localhost:8000
-```
+## 🔧 Configuratie
 
-4. Open `http://localhost:8000` in je browser
+### EmailJS (Contactformulier)
+Configuratie staat in `app/contact/page.tsx`:
+- SERVICE_ID: `service_isuw6qv`
+- TEMPLATE_ID: `template_xpgqnpc`
+- PUBLIC_KEY: `4-mPMWIQkgVmyQLgm`
 
-## Aanpassingen
+### PM2
+- App naam: `zelfontspanners`
+- Poort: `3001`
+- Logs: `/var/www/vhosts/zelfontspanners.nl/logs/`
 
-### Leden profielfoto's toevoegen
+## 📚 Documentatie
 
-1. Maak een `images/leden/` map aan
-2. Voeg profielfoto's toe met de naam van het lid (bijv. `dennis-ammersingh.jpg`)
-3. Update de `memberPhotos` object in `leden.js`:
+- `NEXTJS-DEPLOYMENT.md` - Deployment handleiding
+- `GIT-SETUP.md` - Git repository setup
+- `CONVERSIE-COMPLEET.md` - Conversie overzicht
+- `SETUP-COMPLEET.md` - Setup status
 
-```javascript
-const memberPhotos = {
-    'Dennis Ammersingh': 'images/leden/dennis-ammersingh.jpg',
-    'Robert Broeke': 'images/leden/robert-broeke.jpg',
-    // ... voeg alle leden toe
-};
-```
+## 👥 Leden
 
-**Tip:** Zorg dat de bestandsnamen overeenkomen met de exacte naam zoals die in de ledenlijst staat.
+De website ondersteunt authenticatie voor alle actieve leden. Standaard wachtwoord: `test123`
 
-### Foto's toevoegen aan Portfolio
+## 📞 Contact
 
-1. Voeg je foto's toe aan een `images/` map
-2. Update de `galleryData` array in `script.js` met je eigen foto's:
+Voor vragen of ondersteuning:
+- Email: vanzijderveld@gmail.com
+- Contactpersoon: Bert van Zijderveld
 
-```javascript
-const galleryData = [
-    { 
-        src: 'images/jouw-foto.jpg', 
-        category: 'nature', 
-        title: 'Jouw Foto Titel' 
-    },
-    // ... meer foto's
-];
-```
-
-### Blog posts toevoegen
-
-Update de `blogData` array in `script.js`:
-
-```javascript
-const blogData = [
-    {
-        title: 'Jouw Blog Titel',
-        date: 'Datum',
-        author: 'Auteur',
-        excerpt: 'Korte samenvatting',
-        fullText: 'Volledige tekst van het blog bericht',
-        image: 'url-naar-afbeelding'
-    },
-    // ... meer blog posts
-];
-```
-
-### Foto van de maand toevoegen
-
-Update de `fotoVanDeMaandData` array in `script.js`:
-
-```javascript
-const fotoVanDeMaandData = [
-    {
-        month: 'Maand Jaar',
-        theme: 'Thema',
-        winner: 'Naam winnaar',
-        image: 'url-naar-afbeelding',
-        date: 'Datum'
-    },
-    // ... meer winnaars
-];
-```
-
-### Evenementen/Agenda aanpassen
-
-Update de `eventsData` array in `script.js`:
-
-```javascript
-const eventsData = [
-    {
-        title: 'Jouw Evenement',
-        date: 'Datum',
-        description: 'Beschrijving',
-        icon: '📷'
-    },
-    // ... meer evenementen
-];
-```
-
-### Contactgegevens
-
-De huidige contactgegevens (in `index.html`):
-- Email: secretariaatfcw@gmail.com
-- Telefoon: 06 44124696 (Marium Lahm)
-- Adres: Wijchen, Nederland
-
-Pas deze aan in `index.html` (sectie `#contact`) indien nodig.
-
-### Kleuren aanpassen
-
-Wijzig de CSS variabelen in `styles.css`:
-
-```css
-:root {
-    --primary-color: #2c3e50;
-    --secondary-color: #e74c3c;
-    --accent-color: #3498db;
-    /* ... meer kleuren */
-}
-```
-
-## Contactformulier
-
-Het contactformulier werkt momenteel met een simpele alert. Voor productie gebruik:
-
-1. **Backend integratie**: Voeg server-side code toe om emails te versturen
-2. **Email service**: Gebruik een service zoals EmailJS, Formspree, of Netlify Forms
-3. **PHP script**: Maak een `contact.php` bestand voor email verzending
-
-Voorbeeld met EmailJS (gratis):
-- Registreer op [EmailJS](https://www.emailjs.com/)
-- Voeg de EmailJS script toe aan `index.html`
-- Update de form submit handler in `script.js`
-
-## Deployment
-
-### GitHub Pages
-
-1. Push je code naar GitHub
-2. Ga naar Settings > Pages
-3. Selecteer je branch en folder
-4. Je site is live op `https://jouwusername.github.io/repository-naam`
-
-### Netlify
-
-1. Sleep de map naar [Netlify Drop](https://app.netlify.com/drop)
-2. Of verbind met GitHub voor automatische deployments
-
-### Andere hosting
-
-Upload alle bestanden naar je webhost via FTP of cPanel.
-
-## Browser Support
-
-- Chrome (laatste versie)
-- Firefox (laatste versie)
-- Safari (laatste versie)
-- Edge (laatste versie)
-
-## Licentie
+## 📄 Licentie
 
 Dit project is gemaakt voor De Zelfontspanners.
 
-## Ondersteuning
+---
 
-Voor vragen of problemen, neem contact op met de ontwikkelaar.
-
+**De website is klaar voor productie! 🚀**
