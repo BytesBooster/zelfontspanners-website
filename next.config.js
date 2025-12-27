@@ -8,7 +8,7 @@ const nextConfig = {
   // Disable static optimization for pages that use localStorage
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '10mb', // Verhoogd voor foto uploads
     },
   },
 }

@@ -4,11 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && npm run postbuild",
+    "postbuild": "powershell -ExecutionPolicy Bypass -File scripts/copy-static-to-standalone.ps1",
+    "start": "node .next/standalone/server.js",
+    "start:dev": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "cloudinary": "^1.41.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -17,6 +21,9 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "dotenv": "^16.3.1",
+    "sharp": "^0.33.5",
+    "tsx": "^4.7.0",
     "typescript": "^5.0.0"
   }
 }

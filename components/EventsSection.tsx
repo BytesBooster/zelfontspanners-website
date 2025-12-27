@@ -17,30 +17,24 @@ export function EventsSection() {
   const [events, setEvents] = useState<Event[]>([])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const loadEvents = () => {
-        try {
-          const eventsData = localStorage.getItem('agendaEvents')
-          if (eventsData) {
-            const parsed = JSON.parse(eventsData)
-            const futureEvents = parsed
-              .filter((event: Event) => {
-                if (!event.date) return false
-                const eventDate = new Date(event.date)
-                return eventDate >= new Date()
-              })
-              .sort((a: Event, b: Event) => new Date(a.date).getTime() - new Date(b.date).getTime())
-              .slice(0, 4)
-            setEvents(futureEvents)
-          }
-        } catch (e) {
-          console.error('Error loading events:', e)
-        }
+    const loadEvents = async () => {
+      try {
+        const { loadEvents: loadEventsFromLib } = await import('@/lib/agenda')
+        const allEvents = await loadEventsFromLib()
+        const futureEvents = allEvents
+          .filter((event: Event) => {
+            if (!event.date) return false
+            const eventDate = new Date(event.date)
+            return eventDate >= new Date()
+          })
+          .sort((a: Event, b: Event) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 4)
+        setEvents(futureEvents)
+      } catch (e) {
+        console.error('Error loading events:', e)
       }
-      loadEvents()
-      window.addEventListener('storage', loadEvents)
-      return () => window.removeEventListener('storage', loadEvents)
     }
+    loadEvents()
   }, [])
 
   const formatDate = (dateString: string) => {

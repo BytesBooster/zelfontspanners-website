@@ -16,17 +16,19 @@ export default function LoginPage() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
-    initializeAccounts()
+    // Laad leden direct, zonder te wachten op initializeAccounts
     const allMembers = getAllMembers()
     const sorted = [...allMembers].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }))
     setMembers(sorted)
+    
+    // Initialize accounts wordt al aangeroepen door useAuth, niet hier opnieuw doen
     
     if (isLoggedIn && currentUser) {
       router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
     }
   }, [isLoggedIn, currentUser, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!formData.memberName || !formData.password) {
@@ -35,13 +37,21 @@ export default function LoginPage() {
       return
     }
 
-    const result = login(formData.memberName, formData.password)
+    const result = await login(formData.memberName, formData.password)
 
     if (result.success) {
-      setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
-      setTimeout(() => {
-        router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
-      }, 1000)
+      if (result.mustChangePassword) {
+        // Redirect naar wachtwoord wijzigen pagina
+        setMessage({ text: 'Je moet eerst je wachtwoord wijzigen', type: 'success' })
+        setTimeout(() => {
+          router.push('/change-password')
+        }, 1000)
+      } else {
+        setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
+        setTimeout(() => {
+          router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
+        }, 1000)
+      }
     } else {
       setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
       setTimeout(() => setMessage(null), 5000)
@@ -66,6 +76,8 @@ export default function LoginPage() {
               <label htmlFor="memberName">Naam</label>
               <select
                 id="memberName"
+                name="memberName"
+                autoComplete="username"
                 required
                 value={formData.memberName}
                 onChange={(e) => setFormData(prev => ({ ...prev, memberName: e.target.value }))}
@@ -79,9 +91,22 @@ export default function LoginPage() {
             
             <div className="form-group">
               <label htmlFor="password">Wachtwoord</label>
+              {/* Hidden username field for accessibility and password managers */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={formData.memberName}
+                readOnly
+                style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+                tabIndex={-1}
+                aria-hidden="true"
+              />
               <input
                 type="password"
                 id="password"
+                name="password"
+                autoComplete="current-password"
                 required
                 placeholder="Voer je wachtwoord in"
                 value={formData.password}
