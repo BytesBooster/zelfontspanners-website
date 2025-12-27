@@ -20,10 +20,10 @@ Voer deze commando's **handmatig** uit in PowerShell of Git Bash:
 cd "c:\Users\jrdhn\Desktop\foto club wijchen"
 
 # Methode 1: Direct push met token in URL
-git push https://YOUR_GITHUB_TOKEN_HERE@github.com/BytesBooster/zelfontspanners-website.git main
+git push https://YOUR_GITHUB_TOKEN@github.com/BytesBooster/zelfontspanners-website.git main
 
 # Of Methode 2: Via remote URL met token
-git remote set-url origin https://YOUR_GITHUB_TOKEN_HERE@github.com/BytesBooster/zelfontspanners-website.git
+git remote set-url origin https://YOUR_GITHUB_TOKEN@github.com/BytesBooster/zelfontspanners-website.git
 git push -u origin main
 git remote set-url origin https://github.com/BytesBooster/zelfontspanners-website.git
 ```
@@ -66,7 +66,7 @@ git ls-remote --heads origin
 - **Remote URL:** `https://github.com/BytesBooster/zelfontspanners-website.git`
 - **Local Branch:** `main`
 - **Commits:** 5 commits klaar om te pushen
-- **Token:** `YOUR_GITHUB_TOKEN_HERE`
+- **Token:** `YOUR_GITHUB_TOKEN_HERE` (gebruik je eigen Personal Access Token)
 
 ---
 
