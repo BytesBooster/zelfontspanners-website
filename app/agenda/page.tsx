@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
-import { loadEvents, addEvent, removeEvent, formatDateTime, formatDate, isPastEvent, escapeHtml, Event } from '@/lib/agenda'
+import { loadEvents, saveEvents, formatDateTime, formatDate, isPastEvent, escapeHtml, Event } from '@/lib/agenda'
 import Link from 'next/link'
 
 export default function AgendaPage() {
@@ -20,10 +20,17 @@ export default function AgendaPage() {
 
   useEffect(() => {
     loadAndDisplayEvents()
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      loadAndDisplayEvents()
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  const loadAndDisplayEvents = async () => {
-    const loadedEvents = await loadEvents()
+  const loadAndDisplayEvents = () => {
+    const loadedEvents = loadEvents()
     const sorted = [...loadedEvents].sort((a, b) => {
       const dateA = new Date(a.date)
       const dateB = new Date(b.date)
@@ -40,7 +47,7 @@ export default function AgendaPage() {
     setEvents(sorted)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!isLoggedIn) {
@@ -48,18 +55,21 @@ export default function AgendaPage() {
       return
     }
 
-    const newEvent = await addEvent({
+    const newEvent: Event = {
+      id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: formData.title.trim(),
       date: formData.date,
       time: formData.time || null,
       location: formData.location ? formData.location.trim() : null,
       description: formData.description ? formData.description.trim() : null,
       icon: formData.icon || '📅',
-      createdBy: currentUser || 'Unknown'
-    })
+      createdBy: currentUser || 'Unknown',
+      createdAt: new Date().toISOString()
+    }
 
-    if (newEvent) {
-      await loadAndDisplayEvents()
+    const updatedEvents = [...events, newEvent]
+    if (saveEvents(updatedEvents)) {
+      loadAndDisplayEvents()
       setShowModal(false)
       setFormData({
         title: '',
@@ -69,21 +79,17 @@ export default function AgendaPage() {
         description: '',
         icon: '📅'
       })
-    } else {
-      alert('Er is een fout opgetreden bij het toevoegen van het evenement.')
     }
   }
 
-  const handleDelete = async (eventId: string) => {
+  const handleDelete = (eventId: string) => {
     if (!confirm('Weet je zeker dat je dit evenement wilt verwijderen?')) {
       return
     }
 
-    const success = await removeEvent(eventId)
-    if (success) {
-      await loadAndDisplayEvents()
-    } else {
-      alert('Er is een fout opgetreden bij het verwijderen van het evenement.')
+    const filteredEvents = events.filter(event => event.id !== eventId)
+    if (saveEvents(filteredEvents)) {
+      loadAndDisplayEvents()
     }
   }
 
@@ -132,8 +138,6 @@ export default function AgendaPage() {
                   <input
                     type="text"
                     id="eventTitle"
-                    name="eventTitle"
-                    autoComplete="off"
                     required
                     maxLength={100}
                     placeholder="Bijv. Maandelijkse vergadering"
@@ -146,8 +150,6 @@ export default function AgendaPage() {
                   <input
                     type="date"
                     id="eventDate"
-                    name="eventDate"
-                    autoComplete="off"
                     required
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -158,8 +160,6 @@ export default function AgendaPage() {
                   <input
                     type="time"
                     id="eventTime"
-                    name="eventTime"
-                    autoComplete="off"
                     placeholder="Bijv. 19:00"
                     value={formData.time}
                     onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
@@ -170,8 +170,6 @@ export default function AgendaPage() {
                   <input
                     type="text"
                     id="eventLocation"
-                    name="eventLocation"
-                    autoComplete="address-line1"
                     maxLength={200}
                     placeholder="Bijv. Clubhuis, Wijchen"
                     value={formData.location}
@@ -194,8 +192,6 @@ export default function AgendaPage() {
                   <input
                     type="text"
                     id="eventIcon"
-                    name="eventIcon"
-                    autoComplete="off"
                     maxLength={2}
                     placeholder="📅"
                     value={formData.icon}

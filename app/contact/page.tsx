@@ -5,7 +5,7 @@ import Script from 'next/script'
 
 const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_isuw6qv',
-  TEMPLATE_ID: 'template_amojmof',
+  TEMPLATE_ID: 'template_xpgqnpc',
   PUBLIC_KEY: '4-mPMWIQkgVmyQLgm'
 }
 
@@ -142,12 +142,6 @@ export default function ContactPage() {
           to_email: 'vanzijderveld@gmail.com'
         }
         
-        console.log('Sending email via EmailJS:', {
-          serviceId: EMAILJS_CONFIG.SERVICE_ID,
-          templateId: EMAILJS_CONFIG.TEMPLATE_ID,
-          params: templateParams
-        })
-        
         await window.emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.TEMPLATE_ID, templateParams)
         
         setMessage({ text: `Bedankt voor je bericht, ${formData.name}! Je bericht is verzonden.`, type: 'success' })
@@ -172,45 +166,9 @@ export default function ContactPage() {
           setFiles([])
         }, 1000)
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending email:', error)
-      
-      // Always fallback to mailto if EmailJS fails
-      let emailBody = `Nieuw contactformulier bericht van De Zelfontspanners website\n\n`
-      emailBody += `Naam: ${formData.name}\n`
-      emailBody += `E-mail: ${formData.email}\n`
-      if (formData.phone) emailBody += `Telefoonnummer: ${formData.phone}\n`
-      if (formData.message) emailBody += `\nBericht:\n${formData.message}\n`
-      if (files.length > 0) emailBody += `\nAantal bijgevoegde foto's: ${files.length}\n`
-      
-      const mailtoLink = `mailto:vanzijderveld@gmail.com?subject=Contactformulier De Zelfontspanners - ${encodeURIComponent(formData.name)}&body=${encodeURIComponent(emailBody)}`
-      
-      // If EmailJS template error, show specific message
-      if (error?.status === 400 && (error?.text?.includes('template') || error?.text?.includes('not found'))) {
-        console.warn('EmailJS template not found, using mailto fallback')
-        window.location.href = mailtoLink
-        
-        setTimeout(() => {
-          setMessage({ 
-            text: `EmailJS template is niet gevonden. Je email client zou nu moeten openen met een vooraf ingevuld bericht. Als dat niet gebeurt, stuur dan handmatig een email naar vanzijderveld@gmail.com`, 
-            type: 'error' 
-          })
-          setFormData({ name: '', email: '', phone: '', message: '' })
-          setFiles([])
-        }, 500)
-      } else {
-        // Other EmailJS errors
-        window.location.href = mailtoLink
-        
-        setTimeout(() => {
-          setMessage({ 
-            text: `Er ging iets mis bij het verzenden via EmailJS. Je email client zou nu moeten openen. Als dat niet gebeurt, stuur dan handmatig een email naar vanzijderveld@gmail.com`, 
-            type: 'error' 
-          })
-          setFormData({ name: '', email: '', phone: '', message: '' })
-          setFiles([])
-        }, 500)
-      }
+      setMessage({ text: 'Er ging iets mis bij het verzenden. Probeer het later opnieuw.', type: 'error' })
     } finally {
       setIsSubmitting(false)
       setTimeout(() => setMessage(null), 10000)
@@ -279,8 +237,6 @@ export default function ContactPage() {
                     <input
                       type="text"
                       id="name"
-                      name="name"
-                      autoComplete="name"
                       required
                       minLength={2}
                       placeholder="Je volledige naam"
@@ -299,8 +255,6 @@ export default function ContactPage() {
                     <input
                       type="email"
                       id="email"
-                      name="email"
-                      autoComplete="email"
                       required
                       placeholder="jouw@email.nl"
                       value={formData.email}

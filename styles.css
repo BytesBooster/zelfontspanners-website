@@ -301,16 +301,6 @@ h1, h2, h3, h4 {
     z-index: 0;
 }
 
-.hero-slide > img,
-.hero-slide > span {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover;
-}
-
 .hero-slide.active {
     opacity: 1;
     z-index: 1;
@@ -1578,8 +1568,6 @@ body.dark-page .footer-bottom {
     border: 1px solid rgba(212, 175, 55, 0.1);
     position: relative;
     cursor: pointer;
-    text-decoration: none;
-    display: block;
 }
 
 .member-card::before {
@@ -1660,19 +1648,6 @@ body.dark-page .footer-bottom {
     font-weight: 600;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     letter-spacing: 0.3px;
-    text-decoration: none;
-}
-
-.member-card a {
-    text-decoration: none;
-}
-
-.member-card:hover {
-    text-decoration: none;
-}
-
-.member-card:hover .member-name {
-    text-decoration: none;
 }
 
 .member-title {
@@ -1792,16 +1767,9 @@ body.dark-page .footer-bottom {
 
 .portfolio-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
     margin-bottom: 3rem;
-}
-
-@media (max-width: 768px) {
-    .portfolio-gallery {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
-    }
 }
 
 .portfolio-item {
@@ -1835,10 +1803,6 @@ body.dark-page .footer-bottom {
     height: 100%;
     object-fit: cover;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    max-width: 100%;
-    max-height: 100%;
-    display: block;
-    max-height: 100%;
 }
 
 .portfolio-item:hover .portfolio-item-image img {
@@ -1857,7 +1821,7 @@ body.dark-page .footer-bottom {
     align-items: center;
     justify-content: flex-end;
     padding: 1.5rem;
-    opacity: 1;
+    opacity: 0;
     transition: opacity 0.4s ease;
 }
 
@@ -1904,46 +1868,32 @@ body.dark-page .footer-bottom {
     transform: translateY(-2px);
 }
 
-/* Image Modal/Popup Styles - Modern & Beautiful */
+/* Image Modal/Popup Styles */
 .image-modal {
-    display: flex !important;
+    display: none;
     position: fixed;
     z-index: 10000;
     left: 0;
     top: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.98) 0%, rgba(20, 20, 30, 0.98) 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    animation: modalFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeIn 0.3s ease;
     overflow: hidden;
-    cursor: pointer;
 }
 
-@keyframes modalFadeIn {
-    from { 
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-    to { 
-        opacity: 1;
-        backdrop-filter: blur(20px) saturate(180%);
-    }
+.image-modal[style*="display: flex"],
+.image-modal[style*="display:flex"] {
+    display: flex !important;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateY(30px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .image-modal .modal-content {
@@ -1955,134 +1905,65 @@ body.dark-page .footer-bottom {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    padding-top: 4rem;
-    padding-bottom: 2rem;
+    justify-content: flex-start;
+    padding: 1rem;
+    padding-top: 2rem;
     overflow-y: auto;
     overflow-x: hidden;
     box-sizing: border-box;
-    cursor: default;
-    gap: 0;
 }
 
 .image-modal .modal-content img {
-    max-width: 100% !important;
-    max-height: 75vh !important;
+    max-width: 95vw !important;
+    max-height: 70vh !important;
     width: auto !important;
     height: auto !important;
     object-fit: contain !important;
-    border-radius: 0;
-    box-shadow: none;
-    animation: imageZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    margin: 0;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 175, 55, 0.2);
+    animation: zoomIn 0.3s ease;
+    margin: 0 auto;
     display: block;
     flex-shrink: 0;
-    transition: transform 0.3s ease;
-    background: rgba(0, 0, 0, 0.3);
 }
 
-.image-modal .modal-content img:hover {
-    transform: scale(1.01);
-}
-
-@keyframes imageZoomIn {
-    from { 
-        transform: scale(0.85) translateY(20px);
-        opacity: 0;
-        filter: blur(10px);
-    }
-    to { 
-        transform: scale(1) translateY(0);
-        opacity: 1;
-        filter: blur(0);
-    }
+@keyframes zoomIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 .modal-caption {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
     text-align: center;
     color: #ffffff;
-    padding: 1.5rem 2rem;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
-    border-radius: 0;
-    backdrop-filter: blur(10px);
-    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
-    width: 100%;
-    box-sizing: border-box;
+    flex-shrink: 0;
+    padding: 0 1rem;
+    min-height: auto;
 }
 
 .modal-caption h3 {
     color: #ffd700;
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.3);
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 
 .modal-caption p {
-    color: #e0e0e0;
-    font-size: 1rem;
-    font-weight: 500;
-    opacity: 0.9;
-}
-
-/* Modal Image Container */
-.modal-image-container {
-    display: inline-block;
-    max-width: 90vw;
-    margin: 0 auto;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 
-        0 25px 80px rgba(0, 0, 0, 0.9),
-        0 0 0 1px rgba(212, 175, 55, 0.15),
-        0 0 100px rgba(212, 175, 55, 0.1);
-    /* Breedte wordt ingesteld via JavaScript om overeen te komen met afbeelding */
-    width: auto !important;
-}
-
-/* Modal Image Wrapper */
-.modal-image-wrapper {
-    position: relative;
-    display: block;
-    width: 100%;
-    max-height: 75vh;
-    border-radius: 0;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-.modal-image-wrapper img {
-    display: block;
-    max-width: 100%;
-    max-height: 75vh;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    border-radius: 0;
+    color: #c8c8c8;
+    font-size: 0.9rem;
 }
 
 /* Modal Social Features (Likes & Comments) */
 .modal-social {
     margin-top: 0;
     width: 100%;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(20, 20, 30, 0.7) 100%);
-    border-radius: 0 0 16px 16px;
-    padding: 1.5rem;
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    border-top: none;
+    max-width: 900px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.2);
     flex-shrink: 0;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
-    box-sizing: border-box;
-    /* Breedte wordt ingesteld via JavaScript om overeen te komen met afbeelding */
-    min-width: 100%;
 }
 
 .modal-social-actions {
@@ -2531,37 +2412,29 @@ body.dark-page .footer-bottom {
 
 .modal-close {
     position: absolute;
-    top: 30px;
-    right: 40px;
+    top: 20px;
+    right: 35px;
     color: #ffffff;
-    font-size: 32px;
-    font-weight: 300;
+    font-size: 40px;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     z-index: 10001;
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     border: 2px solid rgba(212, 175, 55, 0.3);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
 }
 
 .modal-close:hover {
     color: #ffd700;
-    background: rgba(212, 175, 55, 0.25);
-    border-color: rgba(212, 175, 55, 0.7);
-    transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 6px 30px rgba(212, 175, 55, 0.4);
-}
-
-.modal-close:active {
-    transform: rotate(90deg) scale(0.95);
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.6);
+    transform: rotate(90deg);
 }
 
 .modal-prev,
@@ -2570,131 +2443,41 @@ body.dark-page .footer-bottom {
     top: 50%;
     transform: translateY(-50%);
     color: #ffffff;
+    font-size: 50px;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     z-index: 10001;
+    width: 60px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.75rem 1rem;
-    user-select: none;
-    width: 50px;
-    height: 50px;
-    min-width: 50px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(212, 175, 55, 0.2);
     border-radius: 50%;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
-    font-family: inherit;
-    outline: none;
-}
-
-.modal-prev:focus,
-.modal-next:focus {
-    outline: 2px solid rgba(212, 175, 55, 0.5);
-    outline-offset: 2px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    user-select: none;
 }
 
 .modal-prev {
-    left: 40px;
-    animation-delay: 0.25s;
+    left: 30px;
 }
 
 .modal-next {
-    right: 40px;
-    animation-delay: 0.35s;
-}
-
-.modal-arrow-icon {
-    font-size: 24px;
-    font-weight: 300;
-    line-height: 1;
-    color: #ffd700;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-    transition: all 0.3s ease;
-}
-
-.modal-arrow-text {
-    display: none;
+    right: 30px;
 }
 
 .modal-prev:hover,
 .modal-next:hover {
-    transform: translateY(-50%) scale(1.08);
-    background: rgba(212, 175, 55, 0.15);
-    border-color: rgba(212, 175, 55, 0.5);
-    box-shadow: 0 12px 40px rgba(212, 175, 55, 0.3), 0 0 30px rgba(212, 175, 55, 0.2);
-}
-
-.modal-prev:hover .modal-arrow-icon,
-.modal-next:hover .modal-arrow-icon {
-    color: #ffed4e;
-    text-shadow: 0 0 30px rgba(255, 237, 78, 0.7);
-    transform: scale(1.1);
-}
-
-.modal-prev:hover .modal-arrow-text,
-.modal-next:hover .modal-arrow-text {
     color: #ffd700;
-    transform: translateX(0);
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.6);
+    transform: translateY(-50%) scale(1.1);
 }
 
 .modal-prev:active,
 .modal-next:active {
-    transform: translateY(-50%) scale(1.02);
-}
-
-
-/* Mobile responsive for modal arrows */
-@media (max-width: 768px) {
-    .modal-prev,
-    .modal-next {
-        min-width: 100px;
-        padding: 1rem 0.75rem;
-        gap: 0.5rem;
-        border-radius: 12px;
-    }
-    
-    .modal-arrow-icon {
-        font-size: 36px;
-    }
-    
-    .modal-arrow-text {
-        font-size: 0.75rem;
-        max-width: 90px;
-    }
-    
-    .modal-prev {
-        left: 15px;
-    }
-    
-    .modal-next {
-        right: 15px;
-    }
-    
-    .modal-close {
-        top: 15px;
-        right: 20px;
-        width: 48px;
-        height: 48px;
-        font-size: 28px;
-    }
-    
-    .modal-caption {
-        padding: 1rem 1.5rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .modal-caption h3 {
-        font-size: 1.2rem;
-    }
-    
-    .modal-caption p {
-        font-size: 0.9rem;
-    }
+    transform: translateY(-50%) scale(0.95);
 }
 
 /* Responsive modal - Large screens (1920px and above) */
@@ -2766,45 +2549,33 @@ body.dark-page .footer-bottom {
 @media (max-width: 767px) {
     .image-modal .modal-content {
         padding: 1rem;
-        padding-top: 4rem;
-        padding-bottom: 1rem;
+        padding-top: 3.5rem;
     }
     
     .image-modal .modal-content img {
         max-width: 95vw !important;
         max-height: 60vh !important;
-        border-radius: 12px;
     }
     
     .modal-social {
         max-width: 100%;
         padding: 1rem;
         margin-top: 0.5rem;
-        border-radius: 12px;
     }
     
     .modal-close {
-        top: 15px;
-        right: 20px;
-        font-size: 28px;
-        width: 48px;
-        height: 48px;
+        top: 10px;
+        right: 15px;
+        font-size: 30px;
+        width: 40px;
+        height: 40px;
     }
     
     .modal-prev,
     .modal-next {
-        min-width: 80px;
-        padding: 0.75rem 0.5rem;
-        gap: 0.25rem;
-    }
-    
-    .modal-arrow-icon {
-        font-size: 32px;
-    }
-    
-    .modal-arrow-text {
-        font-size: 0.7rem;
-        max-width: 70px;
+        font-size: 35px;
+        width: 45px;
+        height: 45px;
     }
     
     .modal-prev {
@@ -2815,18 +2586,8 @@ body.dark-page .footer-bottom {
         right: 10px;
     }
     
-    .modal-caption {
-        padding: 1rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
-    
     .modal-caption h3 {
-        font-size: 1.1rem;
-    }
-    
-    .modal-caption p {
-        font-size: 0.85rem;
+        font-size: 1.2rem;
     }
 }
 
@@ -4232,106 +3993,6 @@ body.dark-page .event-card:hover {
     transition: all 0.3s ease;
     position: relative;
     cursor: move;
-    aspect-ratio: 4/3; /* Vaste aspect ratio */
-}
-
-.photo-item-image {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-}
-
-.photo-item-image img {
-    pointer-events: none;
-    user-select: none;
-}
-
-.photo-drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-}
-
-.photo-item:hover .photo-drag-handle,
-.photo-item.dragging .photo-drag-handle {
-    opacity: 1;
-}
-
-.photo-drag-handle:hover {
-    background: rgba(212, 175, 55, 0.9);
-    color: #000;
-}
-
-.photo-item-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-}
-
-.photo-item-actions {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
-    padding: 1rem;
-    z-index: 10;
-}
-
-.photo-item-title {
-    color: #ffffff;
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-    font-weight: 500;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-.photo-item-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.photo-item-buttons .btn {
-    flex: 1;
-    min-width: 80px;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
-
-.edit-title-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.edit-title-form input {
-    width: 100%;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 5px;
-    color: #ffffff;
-    font-size: 0.9rem;
-}
-
-.edit-title-form input:focus {
-    outline: none;
-    border-color: rgba(212, 175, 55, 0.5);
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.edit-title-form .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
 }
 
 .photo-item:hover {
@@ -4342,14 +4003,11 @@ body.dark-page .event-card:hover {
 .photo-item.dragging {
     opacity: 0.5;
     cursor: grabbing;
-    transform: scale(0.95);
 }
 
 .photo-item.drag-over {
-    border-color: rgba(212, 175, 55, 0.8);
+    border-color: rgba(212, 175, 55, 0.6);
     border-width: 2px;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-    transform: scale(1.02);
 }
 
 .photo-drag-handle {
@@ -5421,44 +5079,21 @@ body.dark-page .event-card:hover {
     border: 1px solid rgba(212, 175, 55, 0.2);
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.4);
-    color: #ffffff !important;
+    color: #ffffff;
     font-family: inherit;
     font-size: 1rem;
-    transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.contact-form-new input:not(:placeholder-shown),
-.contact-form-new textarea:not(:placeholder-shown) {
-    color: #ffffff !important;
-}
-
-/* Remove any browser default blue colors from inputs and prevent white background */
+/* Remove any browser default blue colors from inputs */
 .contact-form-new input:-webkit-autofill,
 .contact-form-new input:-webkit-autofill:hover,
 .contact-form-new input:-webkit-autofill:focus,
-.contact-form-new input:-webkit-autofill:active,
-.contact-form-new input:-webkit-autofill:not(:placeholder-shown) {
-    -webkit-text-fill-color: #ffffff !important;
-    -webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.4) inset !important;
-    box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.4) inset !important;
-    background-color: rgba(0, 0, 0, 0.4) !important;
-    color: #ffffff !important;
-    transition: background-color 5000s ease-in-out 0s, color 0s ease-in-out 0s;
-}
-
-/* For Firefox autofill */
-.contact-form-new input:-moz-autofill,
-.contact-form-new input:-moz-autofill:hover,
-.contact-form-new input:-moz-autofill:focus {
-    background-color: rgba(0, 0, 0, 0.4) !important;
-    color: #ffffff !important;
-}
-
-/* Ensure text color stays white when typing */
-.contact-form-new input[value]:not([value=""]),
-.contact-form-new textarea:not(:empty) {
-    color: #ffffff !important;
+.contact-form-new input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff;
+    -webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.5) inset;
+    box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.5) inset;
 }
 
 .contact-form-new input[type="date"]::-webkit-calendar-picker-indicator,
@@ -5474,6 +5109,7 @@ body.dark-page .event-card:hover {
 .contact-form-new input:hover,
 .contact-form-new textarea:hover {
     border-color: rgba(212, 175, 55, 0.4);
+    background: rgba(0, 0, 0, 0.5);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
 }
 
@@ -5484,6 +5120,7 @@ body.dark-page .event-card:hover {
     box-shadow: 
         0 0 20px rgba(212, 175, 55, 0.25),
         0 4px 12px rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.6);
 }
 
 .contact-form-new input.success,

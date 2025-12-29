@@ -25,10 +25,7 @@ Open: http://localhost:3000
 ```bash
 npm run build
 npm start
-# Of direct: node .next/standalone/server.js
 ```
-
-**Let op:** Met `output: standalone` gebruikt `npm start` automatisch de standalone server.
 
 ---
 
@@ -159,7 +156,7 @@ npm run lint
 
 ### EmailJS (Contactformulier)
 - Service ID: `service_isuw6qv`
-- Template ID: `template_amojmof`
+- Template ID: `template_xpgqnpc`
 - Public Key: `4-mPMWIQkgVmyQLgm`
 
 ### PM2

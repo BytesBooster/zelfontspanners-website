@@ -1,7 +1,5 @@
 'use client'
 
-import { getPhotoLikes as getPhotoLikesFromSupabase, togglePhotoLike, getPhotoComments as getPhotoCommentsFromSupabase, addPhotoComment, PhotoComment } from './supabase'
-
 // This will load the portfolio data from the existing portfolio-data.js
 // For now, we'll create a wrapper that can use the existing JS functions
 
@@ -92,23 +90,40 @@ export function getPhotoId(photoSrc: string): string {
   return normalizedSrc.replace(/[^a-zA-Z0-9\/]/g, '_').replace(/\//g, '_')
 }
 
-export async function getPhotoLikes(photoId: string): Promise<string[]> {
-  // Gebruik Supabase met fallback naar localStorage
-  return await getPhotoLikesFromSupabase(photoId)
+export function getPhotoLikes(photoId: string): string[] {
+  if (typeof window === 'undefined') return []
+  const likesData = JSON.parse(localStorage.getItem('photoLikes') || '{}')
+  return likesData[photoId] || []
 }
 
-export async function getPhotoComments(photoId: string): Promise<PhotoComment[]> {
-  // Gebruik Supabase met fallback naar localStorage
-  return await getPhotoCommentsFromSupabase(photoId)
+export function getPhotoComments(photoId: string): any[] {
+  if (typeof window === 'undefined') return []
+  const commentsData = JSON.parse(localStorage.getItem('photoComments') || '{}')
+  return commentsData[photoId] || []
 }
 
-export async function isPhotoLikedByUser(photoId: string, currentUser: string | null): Promise<boolean> {
+export function isPhotoLikedByUser(photoId: string, currentUser: string | null): boolean {
   if (!currentUser) return false
-  const likes = await getPhotoLikes(photoId)
+  const likes = getPhotoLikes(photoId)
   return likes.includes(currentUser)
 }
 
-export async function toggleLike(photoId: string, currentUser: string | null): Promise<void> {
-  if (!currentUser) return
-  await togglePhotoLike(photoId, currentUser)
+export function toggleLike(photoId: string, currentUser: string | null): void {
+  if (!currentUser || typeof window === 'undefined') return
+  
+  const likesData = JSON.parse(localStorage.getItem('photoLikes') || '{}')
+  if (!likesData[photoId]) {
+    likesData[photoId] = []
+  }
+  
+  const likes = likesData[photoId]
+  const index = likes.indexOf(currentUser)
+  
+  if (index > -1) {
+    likes.splice(index, 1)
+  } else {
+    likes.push(currentUser)
+  }
+  
+  localStorage.setItem('photoLikes', JSON.stringify(likesData))
 }

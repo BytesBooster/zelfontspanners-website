@@ -108,17 +108,15 @@ Zie `NEXTJS-DEPLOYMENT.md` voor volledige deployment instructies naar Plesk.
 
 - `npm run dev` - Start development server
 - `npm run build` - Maak production build
-- `npm start` - Start production server (standalone mode: `node .next/standalone/server.js`)
+- `npm start` - Start production server
 - `npm run lint` - Run linter
-
-**Belangrijk:** Met `output: standalone` in next.config.js gebruik je `node .next/standalone/server.js` in plaats van `next start`. De `npm start` script is hierop aangepast.
 
 ## 🔧 Configuratie
 
 ### EmailJS (Contactformulier)
 Configuratie staat in `app/contact/page.tsx`:
 - SERVICE_ID: `service_isuw6qv`
-- TEMPLATE_ID: `template_amojmof`
+- TEMPLATE_ID: `template_xpgqnpc`
 - PUBLIC_KEY: `4-mPMWIQkgVmyQLgm`
 
 ### PM2

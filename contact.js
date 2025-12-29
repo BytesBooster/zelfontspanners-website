@@ -210,7 +210,7 @@ function showFormMessage(message, type = 'success') {
 // Zie EMAILJS-SETUP.md voor gedetailleerde instructies
 const EMAILJS_CONFIG = {
     SERVICE_ID: 'service_isuw6qv',     // EmailJS Service ID
-    TEMPLATE_ID: 'template_amojmof',   // EmailJS Template ID
+    TEMPLATE_ID: 'template_xpgqnpc',   // EmailJS Template ID
     PUBLIC_KEY: '4-mPMWIQkgVmyQLgm'    // EmailJS Public Key
 };
 

@@ -4,6 +4,7 @@
 const activeMembers = [
     'albert van der Meij',
     'Anja Versteegen',
+    'Ann van rijn',
     'Anne-Marie Dennissen',
     'Ans Heisen',
     'Astrid Kasteleijn',
@@ -17,7 +18,7 @@ const activeMembers = [
     'Frank van den Broek',
     'Gerhard Bod',
     'Hans Haarsma',
-    'Hans van de Lest',
+    'Hans van dfe Lest',
     'Helen Henskens',
     'Henk Regeling',
     'Ine Janssen',

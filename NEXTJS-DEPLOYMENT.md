@@ -78,7 +78,6 @@ Dit maakt een production build in `.next/` folder.
 
 ```bash
 npm start
-# Of: node .next/standalone/server.js
 ```
 
 ---

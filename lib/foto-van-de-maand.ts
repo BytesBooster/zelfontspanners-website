@@ -1,7 +1,6 @@
 'use client'
 
 import { loadEvents, Event } from './agenda'
-import { getFotoSubmissions as getFotoSubmissionsFromSupabase, addFotoSubmission as addFotoSubmissionToSupabase, getFotoVotes, toggleFotoVote, deleteFotoSubmission, FotoSubmission as SupabaseFotoSubmission } from './supabase'
 
 export interface FotoSubmission {
   id: string
@@ -21,78 +20,14 @@ export interface MonthData {
   winner?: FotoSubmission | null
 }
 
-export async function loadSubmissions(): Promise<Record<string, MonthData>> {
+export function loadSubmissions(): Record<string, MonthData> {
   if (typeof window === 'undefined') return {}
-  
-  // Probeer eerst Supabase
-  try {
-    const allSubmissions: Record<string, MonthData> = {}
-    
-    // Haal submissions op voor alle maanden (we moeten weten welke maanden er zijn)
-    // Voor nu gebruiken we de huidige maand en de laatste 12 maanden
-    const currentMonthKey = getCurrentMonthKey()
-    const monthKeys: string[] = [currentMonthKey]
-    
-    // Voeg laatste 12 maanden toe
-    for (let i = 1; i <= 12; i++) {
-      const date = new Date()
-      date.setMonth(date.getMonth() - i)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      monthKeys.push(`${year}-${month}`)
-    }
-    
-    // Haal submissions op voor elke maand
-    for (const monthKey of monthKeys) {
-      const supabaseSubmissions = await getFotoSubmissionsFromSupabase(monthKey)
-      
-      if (supabaseSubmissions.length > 0) {
-        // Converteer Supabase submissions naar FotoSubmission formaat
-        const submissions: FotoSubmission[] = []
-        
-        for (const sub of supabaseSubmissions) {
-          // Haal votes op voor deze submission
-          const votes = await getFotoVotes(sub.id || '')
-          
-          submissions.push({
-            id: sub.id || '',
-            photographer: sub.photographer,
-            title: sub.title,
-            imageSrc: sub.cloudinary_url,
-            votes: votes,
-            uploadDate: sub.upload_date || new Date().toISOString(),
-            excursionId: sub.excursion_id,
-            excursionTitle: sub.excursion_title,
-            excursionLocation: sub.excursion_location,
-            excursionDate: sub.excursion_date
-          })
-        }
-        
-        allSubmissions[monthKey] = {
-          submissions,
-          winner: null
-        }
-      }
-    }
-    
-    // Als er Supabase data is, gebruik die
-    if (Object.keys(allSubmissions).length > 0) {
-      return allSubmissions
-    }
-  } catch (error) {
-    console.error('Error loading submissions from Supabase:', error)
-  }
-  
-  // Fallback naar localStorage
   return JSON.parse(localStorage.getItem('fotoVanDeMaandSubmissions') || '{}')
 }
 
-export async function saveSubmissions(data: Record<string, MonthData>): Promise<void> {
+export function saveSubmissions(data: Record<string, MonthData>): void {
   if (typeof window === 'undefined') return
-  
-  // Voor nu slaan we alleen nieuwe submissions op in Supabase
-  // Bestaande submissions worden niet overschreven
-  // Dit is een vereenvoudigde implementatie - volledige sync zou complexer zijn
+  localStorage.setItem('fotoVanDeMaandSubmissions', JSON.stringify(data))
 }
 
 export function getCurrentMonthKey(): string {
@@ -107,9 +42,9 @@ export function getMonthName(monthKey: string): string {
   return monthNames[month] || monthKey
 }
 
-export async function getCurrentMonthExcursion(): Promise<Event | null> {
+export function getCurrentMonthExcursion(): Event | null {
   try {
-    const events = await loadEvents()
+    const events = loadEvents()
     const currentMonthKey = getCurrentMonthKey()
     const [year, month] = currentMonthKey.split('-').map(Number)
     
@@ -128,24 +63,23 @@ export async function getCurrentMonthExcursion(): Promise<Event | null> {
   }
 }
 
-export async function getUserSubmissionsForMonth(monthKey: string, currentUser: string | null): Promise<FotoSubmission[]> {
+export function getUserSubmissionsForMonth(monthKey: string, currentUser: string | null): FotoSubmission[] {
   if (!currentUser) return []
-  const submissions = await loadSubmissions()
+  const submissions = loadSubmissions()
   const monthData = submissions[monthKey] || { submissions: [] }
   return monthData.submissions.filter(sub => sub.photographer === currentUser)
 }
 
-export async function canUserUpload(currentUser: string | null): Promise<boolean> {
+export function canUserUpload(currentUser: string | null): boolean {
   if (!currentUser) return false
   const currentMonthKey = getCurrentMonthKey()
-  const userSubmissions = await getUserSubmissionsForMonth(currentMonthKey, currentUser)
+  const userSubmissions = getUserSubmissionsForMonth(currentMonthKey, currentUser)
   return userSubmissions.length < 5
 }
 
-export async function getRemainingUploadSlots(currentUser: string | null): Promise<number> {
-  if (!currentUser) return 0
+export function getRemainingUploadSlots(currentUser: string | null): number {
   const currentMonthKey = getCurrentMonthKey()
-  const userSubmissions = await getUserSubmissionsForMonth(currentMonthKey, currentUser)
+  const userSubmissions = getUserSubmissionsForMonth(currentMonthKey, currentUser)
   return Math.max(0, 5 - userSubmissions.length)
 }
 

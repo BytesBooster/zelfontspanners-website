@@ -6,6 +6,7 @@ function getAllMembers() {
     const activeMembers = [
         'albert van der Meij',
         'Anja Versteegen',
+        'Ann van rijn',
         'Anne-Marie Dennissen',
         'Ans Heisen',
         'Astrid Kasteleijn',
@@ -19,7 +20,7 @@ function getAllMembers() {
         'Frank van den Broek',
         'Gerhard Bod',
         'Hans Haarsma',
-        'Hans van de Lest',
+        'Hans van dfe Lest',
         'Helen Henskens',
         'Henk Regeling',
         'Ine Janssen',
@@ -49,46 +50,25 @@ function getAllMembers() {
     return [...activeMembers, ...honoraryMembers];
 };
 
-// Hash een wachtwoord met Web Crypto API (SHA-256)
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
-
-// Verifieer een wachtwoord tegen een hash
-async function verifyPassword(password, hash) {
-    const passwordHash = await hashPassword(password);
-    return passwordHash === hash;
-}
-
 // Initialize user accounts (in a real app, this would be server-side)
-async function initializeAccounts() {
+function initializeAccounts() {
     const members = getAllMembers();
     const accounts = JSON.parse(localStorage.getItem('memberAccounts') || '{}');
-    const defaultPassword = 'test123';
-    const defaultPasswordHash = await hashPassword(defaultPassword);
     
     // Create default accounts for members if they don't exist
-    // Migreer bestaande plaintext wachtwoorden naar hashes
-    for (const member of members) {
+    members.forEach(member => {
         if (!accounts[member]) {
+            // Default password is "test123" for all members
             accounts[member] = {
-                password: defaultPasswordHash, // Hash van standaard wachtwoord
+                password: 'test123', // Default password for all members
                 memberName: member,
                 createdAt: new Date().toISOString()
             };
         } else {
-            // Als het wachtwoord nog niet gehasht is (minder dan 64 karakters = geen SHA-256 hash)
-            // of als het het standaard wachtwoord is, hash het
-            if (accounts[member].password.length < 64 || accounts[member].password === defaultPassword) {
-                accounts[member].password = defaultPasswordHash;
-            }
+            // Update existing accounts to use "test123" password
+            accounts[member].password = 'test123';
         }
-    }
+    });
     
     localStorage.setItem('memberAccounts', JSON.stringify(accounts));
     return accounts;
@@ -119,18 +99,15 @@ function getCurrentUser() {
     return session.memberName;
 };
 
-// Login function (nu async voor wachtwoord verificatie)
-async function login(memberName, password) {
+// Login function
+function login(memberName, password) {
     const accounts = JSON.parse(localStorage.getItem('memberAccounts') || '{}');
     
     if (!accounts[memberName]) {
         return { success: false, message: 'Gebruiker niet gevonden' };
     }
     
-    // Verifieer het wachtwoord tegen de hash
-    const isValid = await verifyPassword(password, accounts[memberName].password);
-    
-    if (!isValid) {
+    if (accounts[memberName].password !== password) {
         return { success: false, message: 'Onjuist wachtwoord' };
     }
     
@@ -162,9 +139,33 @@ function canAccessPortfolio(portfolioMemberName) {
 
 // Initialize accounts on load
 if (typeof window !== 'undefined') {
-    // Initialize accounts (async, maar we wachten niet omdat het in de achtergrond gebeurt)
-    initializeAccounts().catch(err => {
-        console.error('Error initializing accounts:', err);
+    // Force reset all passwords to "test123" on first load
+    const accounts = JSON.parse(localStorage.getItem('memberAccounts') || '{}');
+    const members = getAllMembers();
+    let needsReset = false;
+    
+    members.forEach(member => {
+        if (!accounts[member] || accounts[member].password !== 'test123') {
+            needsReset = true;
+        }
     });
+    
+    if (needsReset) {
+        // Reset all passwords to "test123"
+        members.forEach(member => {
+            if (!accounts[member]) {
+                accounts[member] = {
+                    password: 'test123',
+                    memberName: member,
+                    createdAt: new Date().toISOString()
+                };
+            } else {
+                accounts[member].password = 'test123';
+            }
+        });
+        localStorage.setItem('memberAccounts', JSON.stringify(accounts));
+    }
+    
+    initializeAccounts();
 }
 

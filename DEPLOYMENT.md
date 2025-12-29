@@ -224,7 +224,7 @@ Het contactformulier gebruikt EmailJS. Controleer of de configuratie correct is 
 ```javascript
 const EMAILJS_CONFIG = {
     SERVICE_ID: 'service_isuw6qv',
-    TEMPLATE_ID: 'template_amojmof',
+    TEMPLATE_ID: 'template_xpgqnpc',
     PUBLIC_KEY: '4-mPMWIQkgVmyQLgm'
 };
 ```

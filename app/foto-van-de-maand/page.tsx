@@ -15,7 +15,6 @@ import {
   FotoSubmission,
   MonthData
 } from '@/lib/foto-van-de-maand'
-import { addFotoSubmission as addFotoSubmissionToSupabase, toggleFotoVote, getFotoVotes } from '@/lib/supabase'
 import { formatDate } from '@/lib/agenda'
 
 export default function FotoVanDeMaandPage() {
@@ -35,40 +34,29 @@ export default function FotoVanDeMaandPage() {
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const loadData = async () => {
-      const monthKey = getCurrentMonthKey()
-      setCurrentMonthKey(monthKey)
-      
-      const loaded = await loadSubmissions()
-      setSubmissions(loaded)
-      
-      const currentExcursion = await getCurrentMonthExcursion()
-      setExcursion(currentExcursion)
-    }
+    const monthKey = getCurrentMonthKey()
+    setCurrentMonthKey(monthKey)
     
-    loadData()
+    const loaded = loadSubmissions()
+    setSubmissions(loaded)
+    
+    const currentExcursion = getCurrentMonthExcursion()
+    setExcursion(currentExcursion)
   }, [])
 
   const monthData = submissions[currentMonthKey] || { submissions: [] }
   const userSubmissions = monthData.submissions.filter(sub => sub.photographer === currentUser)
-  const [remaining, setRemaining] = useState(5)
-  
-  useEffect(() => {
-    if (currentUser) {
-      getRemainingUploadSlots(currentUser).then(setRemaining)
-    }
-  }, [currentUser, submissions])
+  const remaining = getRemainingUploadSlots(currentUser)
 
   // Find winner (most votes)
   const winner = monthData.submissions.length > 0
     ? [...monthData.submissions].sort((a, b) => (b.votes || []).length - (a.votes || []).length)[0]
     : null
 
-  const handleFileSelect = async (files: FileList | null) => {
+  const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
     
-    const canUpload = await canUserUpload(currentUser)
-    if (!canUpload) {
+    if (!canUserUpload(currentUser)) {
       alert('Je hebt het maximum van 5 foto\'s bereikt voor deze maand.')
       return
     }
@@ -121,78 +109,78 @@ export default function FotoVanDeMaandPage() {
   const handleUpload = async () => {
     if (pendingFiles.length === 0 || !currentUser) return
 
+    const updatedSubmissions = { ...submissions }
+    const monthData = updatedSubmissions[currentMonthKey] || { submissions: [] }
+    
     const uploadedCount = pendingFiles.length
-    const currentExcursion = await getCurrentMonthExcursion()
-    let successCount = 0
 
     for (const file of pendingFiles) {
-      try {
-        // Upload naar Cloudinary
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('folder', `zelfontspanners/foto-van-de-maand/${currentMonthKey}`)
-        formData.append('member', currentUser)
-
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error('Upload mislukt')
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          compressImage(result, (compressed) => {
+            resolve(compressed)
+          })
         }
+        reader.readAsDataURL(file)
+      })
 
-        const uploadData = await uploadResponse.json()
+      const photoTitle = uploadTitle.trim() || file.name.replace(/\.[^/.]+$/, '')
+      const currentExcursion = getCurrentMonthExcursion()
 
-        // Sla submission op in Supabase
-        const photoTitle = uploadTitle.trim() || file.name.replace(/\.[^/.]+$/, '')
-        const submission = await addFotoSubmissionToSupabase({
-          month_key: currentMonthKey,
-          photographer: currentUser,
-          title: photoTitle,
-          cloudinary_url: uploadData.url,
-          cloudinary_public_id: uploadData.public_id,
-          excursion_id: currentExcursion ? currentExcursion.id : null,
-          excursion_title: currentExcursion ? currentExcursion.title : null,
-          excursion_location: currentExcursion ? currentExcursion.location : null,
-          excursion_date: currentExcursion ? currentExcursion.date : null
-        })
-
-        if (submission) {
-          successCount++
-        }
-      } catch (error) {
-        console.error('Error uploading foto:', error)
-        alert(`Fout bij uploaden van ${file.name}`)
+      const submission: FotoSubmission = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        photographer: currentUser,
+        title: photoTitle,
+        imageSrc: base64,
+        votes: [],
+        uploadDate: new Date().toISOString(),
+        excursionId: currentExcursion ? currentExcursion.id : null,
+        excursionTitle: currentExcursion ? currentExcursion.title : null,
+        excursionLocation: currentExcursion ? currentExcursion.location : null,
+        excursionDate: currentExcursion ? currentExcursion.date : null
       }
+
+      monthData.submissions.push(submission)
     }
 
-    // Herlaad submissions
-    const loaded = await loadSubmissions()
-    setSubmissions(loaded)
+    updatedSubmissions[currentMonthKey] = monthData
+    saveSubmissions(updatedSubmissions)
+    setSubmissions(updatedSubmissions)
 
     setPendingFiles([])
     setShowUploadPreview(false)
     setUploadTitle('')
     if (fileInputRef.current) fileInputRef.current.value = ''
 
-    if (successCount > 0) {
-      alert(`${successCount} foto${successCount === 1 ? '' : '\'s'} ingezonden!`)
-    }
+    alert(`${uploadedCount} foto${uploadedCount === 1 ? '' : '\'s'} ingezonden!`)
   }
 
-  const handleVote = async (fotoId: string) => {
+  const handleVote = (fotoId: string) => {
     if (!currentUser) {
       alert('Je moet ingelogd zijn om te stemmen.')
       return
     }
 
-    // Toggle vote in Supabase
-    await toggleFotoVote(fotoId, currentUser)
+    const updatedSubmissions = { ...submissions }
+    const monthData = updatedSubmissions[currentMonthKey] || { submissions: [] }
     
-    // Herlaad submissions om votes bij te werken
-    const loaded = await loadSubmissions()
-    setSubmissions(loaded)
+    const submission = monthData.submissions.find(s => s.id === fotoId)
+    if (!submission) return
+
+    const votes = submission.votes || []
+    const hasVoted = votes.includes(currentUser)
+
+    if (hasVoted) {
+      submission.votes = votes.filter(v => v !== currentUser)
+    } else {
+      submission.votes = [...votes, currentUser]
+    }
+
+    updatedSubmissions[currentMonthKey] = monthData
+    saveSubmissions(updatedSubmissions)
+    setSubmissions(updatedSubmissions)
   }
 
   const openModal = (submission: FotoSubmission) => {
@@ -370,8 +358,6 @@ export default function FotoVanDeMaandPage() {
                       <input
                         type="text"
                         id="uploadFotoTitle"
-                        name="uploadFotoTitle"
-                        autoComplete="off"
                         placeholder="Geef een titel aan je foto's"
                         value={uploadTitle}
                         onChange={(e) => setUploadTitle(e.target.value)}
