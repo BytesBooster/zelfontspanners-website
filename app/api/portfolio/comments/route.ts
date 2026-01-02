@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
 
     const comments = (data || []).map((item: any) => ({
       id: item.id.toString(),
-      user: item.member_name,
-      text: item.comment,
+      user: item.user_name,
+      text: item.text,
       date: item.created_at,
       replies: []
     }))
@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
       .from(TABLES.PHOTO_COMMENTS)
       .insert([{
         photo_id: photoId,
-        member_name: memberName,
-        comment: comment.trim()
+        user_name: memberName,
+        text: comment.trim()
       }])
       .select()
       .single()
@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       success: true,
       comment: {
         id: data.id.toString(),
-        user: data.member_name,
-        text: data.comment,
+        user: data.user_name,
+        text: data.text,
         date: data.created_at,
         replies: []
       }
