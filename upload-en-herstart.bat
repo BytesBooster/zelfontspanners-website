@@ -53,16 +53,51 @@ echo.
 echo %YELLOW%Stap 4: Verbinden met server en deployen...%RESET%
 echo.
 
+REM Check of SSH beschikbaar is voor automatische deploy
+set SSH_AVAILABLE=0
+if exist "C:\Program Files\PuTTY\plink.exe" set SSH_AVAILABLE=1
+where ssh >nul 2>&1
+if %errorlevel% equ 0 set SSH_AVAILABLE=1
+
+if %SSH_AVAILABLE% equ 1 (
+    echo %YELLOW%SSH client gevonden. Automatisch deployen...%RESET%
+    echo.
+    
+    REM Gebruik OpenSSH als beschikbaar
+    where ssh >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Verbinden met server en deployen...
+        ssh %SERVER_USER%@%SERVER_HOST% "cd %SERVER_PATH% && git pull && chmod +x deploy.sh && ./deploy.sh"
+        if %errorlevel% equ 0 (
+            echo %GREEN%Deploy succesvol!%RESET%
+            goto :end
+        )
+    )
+    
+    REM Of gebruik PuTTY plink
+    if exist "C:\Program Files\PuTTY\plink.exe" (
+        echo Verbinden met server via PuTTY...
+        echo cd %SERVER_PATH% > deploy-temp.txt
+        echo git pull >> deploy-temp.txt
+        echo chmod +x deploy.sh >> deploy-temp.txt
+        echo ./deploy.sh >> deploy-temp.txt
+        "C:\Program Files\PuTTY\plink.exe" -ssh %SERVER_USER%@%SERVER_HOST% -m deploy-temp.txt
+        del deploy-temp.txt
+        if %errorlevel% equ 0 (
+            echo %GREEN%Deploy succesvol!%RESET%
+            goto :end
+        )
+    )
+)
+
 REM Optie 1: Via SSH (als je SSH toegang hebt)
-echo %YELLOW%Optie A: Via SSH (aanbevolen)%RESET%
+echo %YELLOW%Optie A: Via SSH (handmatig)%RESET%
 echo.
 echo Je kunt nu handmatig via SSH verbinden:
 echo   ssh %SERVER_USER%@%SERVER_HOST%
 echo   cd %SERVER_PATH%
 echo   git pull
 echo   ./deploy.sh
-echo.
-echo Of gebruik een SSH client zoals PuTTY of MobaXterm.
 echo.
 
 REM Optie 2: Via WinSCP (als je WinSCP hebt geïnstalleerd)
@@ -103,6 +138,9 @@ echo 3. Voer uit: git pull
 echo 4. Voer uit: ./deploy.sh
 echo.
 echo Of gebruik Plesk Git om automatisch te deployen.
+echo.
+
+:end
 echo.
 pause
 
