@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getAllMembers } from './members'
 
 // Export getAllMembers for admin use
@@ -69,30 +69,53 @@ export function useAuth() {
   const [currentUser, setCurrentUser] = useState<string | null>(null)
   const [requiresPasswordChange, setRequiresPasswordChange] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Use refs to track current values and prevent unnecessary updates
+  const currentStateRef = useRef({ isLoggedIn: false, currentUser: null as string | null, requiresPasswordChange: false })
+  const isInitializedRef = useRef(false)
 
   const checkAuth = useCallback(() => {
     if (typeof window === 'undefined') {
-      setIsLoading(false)
+      if (!isInitializedRef.current) {
+        setIsLoading(false)
+        isInitializedRef.current = true
+      }
       return
     }
 
     const session = getSession()
+    const newIsLoggedIn = !!session
+    const newCurrentUser = session?.memberName || null
+    const newRequiresPasswordChange = session?.requiresPasswordChange || false
     
-    if (session) {
-      setIsLoggedIn(true)
-      setCurrentUser(session.memberName)
-      setRequiresPasswordChange(session.requiresPasswordChange || false)
-    } else {
-      setIsLoggedIn(false)
-      setCurrentUser(null)
-      setRequiresPasswordChange(false)
+    // Only update state if values have actually changed
+    const stateChanged = 
+      currentStateRef.current.isLoggedIn !== newIsLoggedIn ||
+      currentStateRef.current.currentUser !== newCurrentUser ||
+      currentStateRef.current.requiresPasswordChange !== newRequiresPasswordChange
+    
+    if (stateChanged || !isInitializedRef.current) {
+      setIsLoggedIn(newIsLoggedIn)
+      setCurrentUser(newCurrentUser)
+      setRequiresPasswordChange(newRequiresPasswordChange)
+      currentStateRef.current = {
+        isLoggedIn: newIsLoggedIn,
+        currentUser: newCurrentUser,
+        requiresPasswordChange: newRequiresPasswordChange
+      }
     }
     
-    setIsLoading(false)
+    if (!isInitializedRef.current) {
+      setIsLoading(false)
+      isInitializedRef.current = true
+    }
   }, [])
 
   useEffect(() => {
-    checkAuth()
+    // Only run once on mount
+    if (!isInitializedRef.current) {
+      checkAuth()
+    }
     
     // Listen for storage changes (for multi-tab support only)
     // Note: storage events only fire for changes from OTHER tabs/windows, not the current one
@@ -105,13 +128,6 @@ export function useAuth() {
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [checkAuth])
-  
-  // Also check auth when session might have changed in the same tab
-  // But only do this once on mount, not continuously
-  useEffect(() => {
-    // Initial check is already done above
-    // Only re-check if explicitly needed (e.g., after login/logout)
-  }, [])
 
   return { isLoggedIn, currentUser, requiresPasswordChange, isLoading, checkAuth }
 }

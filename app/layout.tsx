@@ -21,12 +21,72 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // AGGRESSIVE MODAL REMOVAL - RUNS IMMEDIATELY
+              // ULTRA-AGGRESSIVE MODAL PREVENTION AND REMOVAL
               (function() {
-                console.log('[MODAL-KILLER] Script loaded - removing all modals');
+                console.log('[MODAL-KILLER] Script loaded - preventing and removing all password modals');
+                
+                // Keywords that indicate password modals
+                const passwordModalKeywords = [
+                  'Wachtwoord Instellen Vereist',
+                  'Wachtwoord Wijzigen',
+                  'voor extra veiligheid',
+                  'voor extra beveiliging',
+                  'Wijzig je wachtwoord',
+                  'wachtwoord instellen',
+                  'wachtwoord wijzigen',
+                  'Nieuw Wachtwoord',
+                  'Bevestig Nieuw Wachtwoord',
+                  'Huidige Wachtwoord',
+                  'Huidig Wachtwoord',
+                  'password reset',
+                  'password change',
+                  'password-reset',
+                  'password-change'
+                ];
+                
+                function isPasswordModal(element) {
+                  if (!element || typeof element.textContent === 'undefined') return false;
+                  
+                  const text = (element.textContent || element.innerText || '').toLowerCase();
+                  const hasPasswordKeyword = passwordModalKeywords.some(keyword => 
+                    text.includes(keyword.toLowerCase())
+                  );
+                  
+                  if (!hasPasswordKeyword) return false;
+                  
+                  // Check if it's positioned as a modal (fixed position, high z-index, or has modal-like styling)
+                  try {
+                    const style = window.getComputedStyle(element);
+                    const zIndex = parseInt(style.zIndex) || 0;
+                    const position = style.position;
+                    const isFixed = position === 'fixed' || position === 'absolute';
+                    const hasHighZIndex = zIndex > 50; // Lowered threshold
+                    
+                    // Also check parent elements
+                    let parent = element.parentElement;
+                    let parentIsModal = false;
+                    while (parent && parent !== document.body) {
+                      const parentStyle = window.getComputedStyle(parent);
+                      const parentZIndex = parseInt(parentStyle.zIndex) || 0;
+                      if (parentZIndex > 50 || parentStyle.position === 'fixed') {
+                        parentIsModal = true;
+                        break;
+                      }
+                      parent = parent.parentElement;
+                    }
+                    
+                    return hasPasswordKeyword && (isFixed || hasHighZIndex || parentIsModal || 
+                           element.classList.contains('modal') || 
+                           element.id && element.id.includes('modal') ||
+                           element.className && element.className.includes('modal'));
+                  } catch(e) {
+                    // If we can't check styles, assume it's a modal if it has password keywords
+                    return hasPasswordKeyword;
+                  }
+                }
                 
                 function removeAllModals() {
-                  // Remove by class names
+                  // Method 1: Remove by selectors (more aggressive)
                   const modalSelectors = [
                     '.modal',
                     '.modal-overlay',
@@ -38,38 +98,86 @@ export default function RootLayout({
                     '.password-change-modal',
                     '#password-change-modal',
                     '.password-reset-modal',
-                    '#password-reset-modal'
+                    '#password-reset-modal',
+                    '[id*="password"]',
+                    '[class*="password"]'
                   ];
                   
                   modalSelectors.forEach(selector => {
                     try {
                       const elements = document.querySelectorAll(selector);
                       elements.forEach(el => {
-                        const text = el.textContent || el.innerText || '';
-                        if (text.includes('wachtwoord') || text.includes('Wachtwoord') || 
-                            text.includes('wijzig') || text.includes('Wijzig') ||
-                            text.includes('voor extra') || text.includes('beveiliging')) {
-                          console.log('[MODAL-KILLER] Removing modal:', el);
+                        if (isPasswordModal(el)) {
+                          console.log('[MODAL-KILLER] Removing modal by selector:', el);
                           el.remove();
                         }
                       });
                     } catch(e) {}
                   });
                   
-                  // Remove overlays that block interaction
-                  const overlays = document.querySelectorAll('div[style*="position: fixed"], div[style*="z-index"]');
-                  overlays.forEach(overlay => {
-                    const style = window.getComputedStyle(overlay);
-                    const zIndex = parseInt(style.zIndex) || 0;
-                    if (zIndex > 1000) {
-                      const text = overlay.textContent || overlay.innerText || '';
-                      if (text.includes('wachtwoord') || text.includes('Wachtwoord')) {
-                        console.log('[MODAL-KILLER] Removing overlay:', overlay);
-                        overlay.remove();
+                  // Method 2: Check ALL elements for password modal content
+                  try {
+                    const allElements = document.querySelectorAll('*');
+                    allElements.forEach(el => {
+                      if (isPasswordModal(el)) {
+                        console.log('[MODAL-KILLER] Removing password modal:', el);
+                        el.remove();
                       }
-                    }
+                    });
+                  } catch(e) {}
+                  
+                  // Method 3: Remove backdrop/overlay elements (more aggressive)
+                  const overlays = document.querySelectorAll('div[style*="position"], div[style*="z-index"], div[style*="fixed"], div[style*="absolute"]');
+                  overlays.forEach(overlay => {
+                    try {
+                      const style = window.getComputedStyle(overlay);
+                      const zIndex = parseInt(style.zIndex) || 0;
+                      if (zIndex > 50) {
+                        const text = (overlay.textContent || overlay.innerText || '').toLowerCase();
+                        if (passwordModalKeywords.some(keyword => text.includes(keyword.toLowerCase()))) {
+                          console.log('[MODAL-KILLER] Removing overlay:', overlay);
+                          overlay.remove();
+                        }
+                      }
+                    } catch(e) {}
                   });
                 }
+                
+                // PREVENT modal creation by intercepting createElement
+                const originalCreateElement = document.createElement.bind(document);
+                document.createElement = function(tagName, options) {
+                  const element = originalCreateElement(tagName, options);
+                  
+                  // Monitor for modal-like attributes
+                  const originalSetAttribute = element.setAttribute.bind(element);
+                  element.setAttribute = function(name, value) {
+                    originalSetAttribute(name, value);
+                    
+                    // Check if this might be a password modal
+                    if ((name === 'id' || name === 'class') && 
+                        typeof value === 'string' && 
+                        (value.includes('modal') || value.includes('password'))) {
+                      setTimeout(() => {
+                        if (isPasswordModal(element)) {
+                          console.log('[MODAL-KILLER] Preventing modal creation:', element);
+                          element.remove();
+                        }
+                      }, 0);
+                    }
+                  };
+                  
+                  return element;
+                };
+                
+                // PREVENT appendChild for password modals
+                const originalAppendChild = Node.prototype.appendChild;
+                Node.prototype.appendChild = function(child) {
+                  if (child && isPasswordModal(child)) {
+                    console.log('[MODAL-KILLER] Preventing modal append:', child);
+                    return child; // Don't actually append
+                  }
+                  return originalAppendChild.call(this, child);
+                };
                 
                 // Run immediately
                 removeAllModals();
@@ -82,33 +190,57 @@ export default function RootLayout({
                 }
                 
                 // Run continuously to catch dynamically added modals
-                const observer = new MutationObserver(function(mutations) {
-                  mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                      if (node.nodeType === 1) { // Element node
-                        const text = node.textContent || node.innerText || '';
-                        if ((text.includes('wachtwoord') || text.includes('Wachtwoord') || 
-                             text.includes('wijzig') || text.includes('Wijzig') ||
-                             text.includes('voor extra') || text.includes('beveiliging')) &&
-                            (node.classList.contains('modal') || 
-                             node.id && node.id.includes('modal') ||
-                             node.querySelector && node.querySelector('.modal'))) {
-                          console.log('[MODAL-KILLER] Removing dynamically added modal:', node);
-                          node.remove();
+                function setupObserver() {
+                  if (!document.body) {
+                    // Body not ready yet, try again later
+                    setTimeout(setupObserver, 50);
+                    return;
+                  }
+                  
+                  const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                      mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                          if (isPasswordModal(node)) {
+                            console.log('[MODAL-KILLER] Removing dynamically added modal:', node);
+                            node.remove();
+                          }
+                          // Also check children immediately
+                          if (node.querySelectorAll) {
+                            node.querySelectorAll('*').forEach(child => {
+                              if (isPasswordModal(child)) {
+                                console.log('[MODAL-KILLER] Removing modal child:', child);
+                                child.remove();
+                              }
+                            });
+                          }
                         }
-                      }
+                      });
                     });
+                    removeAllModals();
                   });
-                  removeAllModals();
-                });
+                  
+                  observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['class', 'id', 'style']
+                  });
+                }
                 
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true
-                });
+                // Setup observer when body is ready
+                if (document.body) {
+                  setupObserver();
+                } else {
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', setupObserver);
+                  } else {
+                    setTimeout(setupObserver, 50);
+                  }
+                }
                 
-                // Also run periodically as backup
-                setInterval(removeAllModals, 100);
+                // Also run periodically as backup (very frequent)
+                setInterval(removeAllModals, 25);
               })();
             `,
           }}
