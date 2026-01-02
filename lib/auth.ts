@@ -51,20 +51,15 @@ function setSession(memberName: string, requiresPasswordChange: boolean = false)
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   
-  // Trigger storage event for multi-tab support
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: SESSION_KEY,
-    newValue: localStorage.getItem(SESSION_KEY)
-  }))
+  // Don't dispatch storage event - it causes infinite loops
+  // Storage events are automatically fired by the browser for cross-tab communication
+  // We don't need to manually trigger them
 }
 
 function clearSession(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(SESSION_KEY)
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: SESSION_KEY,
-      newValue: null
-    }))
+    // Don't dispatch storage event - browser handles this automatically for cross-tab sync
   }
 }
 
@@ -99,9 +94,10 @@ export function useAuth() {
   useEffect(() => {
     checkAuth()
     
-    // Listen for storage changes (for multi-tab support)
+    // Listen for storage changes (for multi-tab support only)
+    // Note: storage events only fire for changes from OTHER tabs/windows, not the current one
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SESSION_KEY) {
+      if (e.key === SESSION_KEY && e.storageArea === localStorage) {
         checkAuth()
       }
     }
@@ -109,6 +105,13 @@ export function useAuth() {
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [checkAuth])
+  
+  // Also check auth when session might have changed in the same tab
+  // But only do this once on mount, not continuously
+  useEffect(() => {
+    // Initial check is already done above
+    // Only re-check if explicitly needed (e.g., after login/logout)
+  }, [])
 
   return { isLoggedIn, currentUser, requiresPasswordChange, isLoading, checkAuth }
 }
