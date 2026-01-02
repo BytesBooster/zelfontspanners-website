@@ -2,14 +2,15 @@ module.exports = {
   apps: [
     {
       name: 'zelfontspanners',
-      script: '.next/standalone/server.js',
+      script: './start-server.sh',
       instances: 1,
       exec_mode: 'fork',
       cwd: '/var/www/vhosts/zelfontspanners.nl/nodejs',
+      interpreter: 'bash',
       env: {
         NODE_ENV: 'production',
         PORT: 3001, // Gebruik een andere poort dan bytesbooster (3000)
-        // Supabase Configuratie
+        // Supabase Configuratie (fallback als .env niet bestaat)
         NEXT_PUBLIC_SUPABASE_URL: 'https://emhidjqtxjnnrlgbbmyi.supabase.co',
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtaGlkanF0eGpubnJsZ2JibXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzk4MzMsImV4cCI6MjA4MjM1NTgzM30.XwlTaxrcJzF6W4iJgMG09lfM636fsChKWJYLBlbJ-Ds',
         // Cloudinary Configuratie (optioneel, maar staat in .env.local)
