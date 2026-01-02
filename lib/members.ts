@@ -56,13 +56,27 @@ export function getInitials(name: string): string {
 
 export const memberPhotos: Record<string, string> = {
   'Ans Heisen': '/images/ans heisen.jpg',
+  'Astrid Kasteleijn': '/images/astrid kasteleijn.jpg',
   'Astrid Sanders': '/images/Astrid Sanders zwart-wit.jpg',
   'Bert van Zijderveld': '/images/bert vna zijderveld.jpg',
+  'Bianca Dekkers - van Uden': '/images/bianca dekker.jpg',
+  'Corrie Cobussen': '/images/corrie cobussen.jpg',
+  'Doris van de Laak': '/images/Doris van de laak.jpg',
+  'Hans Haarsma': '/images/hans haarsma.jpg',
+  'Helen Henskens': '/images/helen henskens.jpg',
   'Ine Janssen': '/images/ine janssen.jpg',
   'Inge Pfeil': '/images/inge pfeil.jpg',
+  'Jan Cobussen': '/images/jan cobussen.jpg',
+  'Jos de Vaan': '/images/jos de vaan.jpg',
+  'Jos Verleg': '/images/Jos verleg.jpg',
   'Karin Kalmar': '/images/Karin kalmar.jpg',
+  'Lize Dekkers': '/images/lize dekker.jpg',
+  'Marlies Reimering': '/images/marlies reimering.jpg',
+  'Renate van den Hoorn': '/images/Renate van den hoorn.jpg',
   'Rob Hendriks': '/images/rob hendriks zwart-wit.jpg',
-  'Ruud Cox': '/images/ruud cox.jpg'
+  'Ron Cuppes': '/images/Ron cuppes.jpg',
+  'Ruud Cox': '/images/ruud cox.jpg',
+  'Ton Leideritz': '/images/ton leideritz.jpg'
 }
 
 export function getMemberPhoto(name: string): string {

@@ -1568,6 +1568,8 @@ body.dark-page .footer-bottom {
     border: 1px solid rgba(212, 175, 55, 0.1);
     position: relative;
     cursor: pointer;
+    text-decoration: none;
+    color: inherit;
 }
 
 .member-card::before {
@@ -1648,6 +1650,15 @@ body.dark-page .footer-bottom {
     font-weight: 600;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     letter-spacing: 0.3px;
+    text-decoration: none;
+}
+
+.member-card {
+    text-decoration: none;
+}
+
+.member-card:hover .member-name {
+    text-decoration: none;
 }
 
 .member-title {
