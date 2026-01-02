@@ -82,7 +82,7 @@ export async function initializeAccounts(): Promise<void> {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               memberName: member,
-              password: 'welkom2026!',
+              password: 'Welkom2026!',
               createdAt: new Date().toISOString()
             })
           })
@@ -142,7 +142,7 @@ export async function requiresPasswordChange(memberName: string): Promise<boolea
     
     if (!data.account) return false
     
-    const defaultPasswords = ['test123', 'welkom2026!']
+    const defaultPasswords = ['test123', 'welkom2026!', 'Welkom2026!']
     return defaultPasswords.includes(data.account.password)
   } catch {
     return false
@@ -245,7 +245,7 @@ export async function resetPassword(memberName: string, adminPassword: string, n
   }
 }
 
-export async function resetAllPasswords(adminPassword: string, newPassword: string = 'welkom2026!'): Promise<{ success: boolean; message?: string; count?: number }> {
+export async function resetAllPasswords(adminPassword: string, newPassword: string = 'Welkom2026!'): Promise<{ success: boolean; message?: string; count?: number }> {
   if (typeof window === 'undefined') {
     return { success: false, message: 'Niet beschikbaar op server' }
   }

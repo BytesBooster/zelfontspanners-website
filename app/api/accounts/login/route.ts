@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         success: true,
         memberName: memberName,
         sessionToken: btoa(JSON.stringify(session)),
-        requiresPasswordChange: account.password === 'test123' || account.password === 'welkom2026!'
+        requiresPasswordChange: account.password === 'test123' || account.password === 'welkom2026!' || account.password === 'Welkom2026!'
       })
     }
 

@@ -23,7 +23,7 @@ export default function AdminResetPasswordPage() {
 
   const handleAdminAuth = (e: React.FormEvent) => {
     e.preventDefault()
-    if (adminPassword === 'welkom2026!') {
+    if (adminPassword === 'Welkom2026!' || adminPassword === 'welkom2026!') {
       setIsAuthenticated(true)
       setMessage({ text: 'Admin toegang verleend', type: 'success' })
       setTimeout(() => setMessage(null), 3000)
