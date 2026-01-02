@@ -72,3 +72,12 @@ SELECT
     (SELECT COUNT(*) FROM accounts) AS actual_count,
     (SELECT COUNT(*) FROM expected_members) - (SELECT COUNT(*) FROM accounts) AS missing_count;
 
+-- Toon alle bestaande accounts
+SELECT 
+    member_name,
+    password,
+    created_at,
+    updated_at
+FROM accounts
+ORDER BY member_name;
+

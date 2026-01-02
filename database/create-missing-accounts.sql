@@ -1,13 +1,13 @@
 -- Script om alle ontbrekende accounts aan te maken
 -- Dit maakt alleen accounts aan die nog niet bestaan
+-- Let op: Voer eerst database/add-password-reset-column.sql uit als password_reset_required kolom niet bestaat
 
-INSERT INTO accounts (member_name, password, created_at, updated_at, password_reset_required)
+INSERT INTO accounts (member_name, password, created_at, updated_at)
 SELECT 
     member_name,
     'Welkom2026!',
     CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP,
-    TRUE
+    CURRENT_TIMESTAMP
 FROM (
     SELECT unnest(ARRAY[
         'albert van der Meij',
@@ -56,10 +56,22 @@ WHERE NOT EXISTS (
 )
 ON CONFLICT (member_name) DO NOTHING;
 
+-- Update password_reset_required voor nieuwe accounts (als kolom bestaat)
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'accounts' AND column_name = 'password_reset_required'
+    ) THEN
+        UPDATE accounts 
+        SET password_reset_required = TRUE
+        WHERE password IN ('Welkom2026!', 'welkom2026!', 'test123');
+    END IF;
+END $$;
+
 -- Verifieer resultaat
 SELECT 
     COUNT(*) AS total_accounts,
-    COUNT(CASE WHEN password_reset_required = TRUE THEN 1 END) AS accounts_needing_password_reset,
-    COUNT(CASE WHEN password = 'Welkom2026!' THEN 1 END) AS accounts_with_default_password
+    COUNT(CASE WHEN password = 'Welkom2026!' OR password = 'welkom2026!' THEN 1 END) AS accounts_with_default_password
 FROM accounts;
 
