@@ -36,26 +36,24 @@ SELECT
 FROM portfolio_data
 LIMIT 5;
 
--- Check portfolio_photos als die bestaat
-SELECT 
-    id,
-    member_name,
-    title,
-    image_url,
-    order_index,
-    created_at
-FROM portfolio_photos
-LIMIT 5
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos');
+-- Check portfolio_photos als die bestaat (voer handmatig uit als tabel bestaat)
+-- SELECT 
+--     id,
+--     member_name,
+--     title,
+--     image_url,
+--     order_index,
+--     created_at
+-- FROM portfolio_photos
+-- LIMIT 5;
 
 -- Check welke members portfolio data hebben
 SELECT DISTINCT member_name
 FROM portfolio_data
 ORDER BY member_name;
 
--- Check portfolio_photos members als die tabel bestaat
-SELECT DISTINCT member_name
-FROM portfolio_photos
-ORDER BY member_name
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos');
+-- Check portfolio_photos members als die tabel bestaat (voer handmatig uit als tabel bestaat)
+-- SELECT DISTINCT member_name
+-- FROM portfolio_photos
+-- ORDER BY member_name;
 

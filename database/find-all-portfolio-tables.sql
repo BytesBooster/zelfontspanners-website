@@ -25,7 +25,8 @@ SELECT
     is_nullable
 FROM information_schema.columns
 WHERE table_name = 'portfolio_photos'
-ORDER BY ordinal_position;
+ORDER BY ordinal_position
+LIMIT 100;
 
 -- Check hoeveel rijen er zijn in elke tabel
 SELECT 
@@ -39,15 +40,19 @@ SELECT
 FROM portfolio_order
 UNION ALL
 SELECT 
-    'portfolio_photos' AS table_name,
-    COUNT(*) AS row_count
-FROM portfolio_photos
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos')
-UNION ALL
-SELECT 
     'hidden_photos' AS table_name,
     COUNT(*) AS row_count
 FROM hidden_photos;
+
+-- Check portfolio_photos als die bestaat
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos') THEN
+        RAISE NOTICE 'portfolio_photos tabel bestaat';
+    ELSE
+        RAISE NOTICE 'portfolio_photos tabel bestaat NIET';
+    END IF;
+END $$;
 
 -- Check welke members portfolio data hebben in portfolio_data
 SELECT 
@@ -59,12 +64,19 @@ ORDER BY member_name
 LIMIT 20;
 
 -- Check welke members portfolio data hebben in portfolio_photos (als die bestaat)
-SELECT 
-    member_name,
-    COUNT(*) AS photo_count
-FROM portfolio_photos
-GROUP BY member_name
-ORDER BY member_name
-LIMIT 20
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos');
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos') THEN
+        PERFORM 1; -- Placeholder, we kunnen geen SELECT in DO block zonder result
+    END IF;
+END $$;
+
+-- Als portfolio_photos bestaat, voer dit handmatig uit:
+-- SELECT 
+--     member_name,
+--     COUNT(*) AS photo_count
+-- FROM portfolio_photos
+-- GROUP BY member_name
+-- ORDER BY member_name
+-- LIMIT 20;
 
