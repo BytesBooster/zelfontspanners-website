@@ -41,60 +41,22 @@ export function getPhotoId(photoSrc: string): string {
   return normalizedSrc.replace(/[^a-zA-Z0-9\/]/g, '_').replace(/\//g, '_')
 }
 
-// Load portfolio data from API with fallback to portfolio-data.js
+// Load portfolio data from API (database)
 export async function loadPortfolioData(memberName: string): Promise<PortfolioData | null> {
   if (typeof window === 'undefined') return null
   
-  // Helper function to load from portfolio-data.js
-  const loadFromFallback = (): PortfolioData | null => {
-    if (typeof (window as any).loadPortfolioData === 'function') {
-      try {
-        const allPortfolioData = (window as any).loadPortfolioData()
-        if (allPortfolioData && allPortfolioData[memberName]) {
-          return {
-            name: memberName,
-            photos: allPortfolioData[memberName].photos || []
-          }
-        }
-      } catch (e) {
-        console.error('Error loading portfolio from fallback:', e)
-      }
-    }
-    return null
-  }
-  
   try {
-    // First try API (database)
     const response = await fetch(`/api/portfolio?memberName=${encodeURIComponent(memberName)}`)
-    if (response.ok) {
-      const data = await response.json()
-      // If API returns photos, use it
-      if (data && data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
-        return data
-      }
-      // If API returns empty array, fallback to portfolio-data.js
+    if (!response.ok) {
+      console.error('Error loading portfolio:', response.statusText)
+      return null
     }
     
-    // Fallback to portfolio-data.js if API is empty or fails
-    // Wait a bit for portfolio-data.js to load (it's loaded with lazyOnload strategy)
-    let fallbackData = loadFromFallback()
-    if (!fallbackData) {
-      // Wait a bit and try again
-      await new Promise(resolve => setTimeout(resolve, 100))
-      fallbackData = loadFromFallback()
-    }
-    if (!fallbackData) {
-      // One more try after a longer delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      fallbackData = loadFromFallback()
-    }
-    
-    return fallbackData
+    const data = await response.json()
+    return data
   } catch (error) {
     console.error('Error loading portfolio data:', error)
-    
-    // Fallback to portfolio-data.js on error
-    return loadFromFallback()
+    return null
   }
 }
 
