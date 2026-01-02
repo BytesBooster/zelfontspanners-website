@@ -16,6 +16,7 @@ interface Account {
 interface Session {
   memberName: string
   timestamp: string
+  pendingPasswordChange?: boolean // Flag to indicate session is temporary until password is changed
 }
 
 // Session storage key (still using localStorage for session token, but account data from DB)
@@ -41,7 +42,16 @@ export function useAuth() {
         return
       }
 
-      const session = JSON.parse(sessionStr)
+      const session: Session = JSON.parse(sessionStr)
+      
+      // If session has pendingPasswordChange flag, remove it (user must change password)
+      if (session.pendingPasswordChange) {
+        localStorage.removeItem(SESSION_KEY)
+        setIsLoggedIn(false)
+        setCurrentUser(null)
+        return
+      }
+
       const sessionTime = new Date(session.timestamp)
       const now = new Date()
       const hoursDiff = (now.getTime() - sessionTime.getTime()) / (1000 * 60 * 60)
@@ -174,9 +184,11 @@ export async function login(memberName: string, password: string): Promise<{ suc
     }
 
     // Store session locally (session data is in database, but we keep token locally)
+    // Mark session as pending password change if required
     const session: Session = {
       memberName: data.memberName,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      pendingPasswordChange: data.requiresPasswordChange || false
     }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 

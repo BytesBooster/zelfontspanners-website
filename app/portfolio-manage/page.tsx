@@ -83,6 +83,44 @@ function PortfolioManageContent() {
     checkPassword()
   }, [isLoggedIn, currentUser]) // Removed memberParam from dependencies to prevent re-runs
 
+  // Effect to handle page unload/visibility change when password reset is pending
+  useEffect(() => {
+    if (!showPasswordChangeModal) {
+      return // Only active when modal is showing
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Remove session if user leaves page without changing password
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('currentSession')
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      // If page becomes hidden (user switches tab, minimizes, etc.) and modal is still showing
+      // Remove session after a short delay to allow for navigation
+      if (document.hidden && showPasswordChangeModal) {
+        setTimeout(() => {
+          if (showPasswordChangeModal && typeof window !== 'undefined') {
+            localStorage.removeItem('currentSession')
+            // Redirect to login page
+            window.location.href = '/login'
+          }
+        }, 100)
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [showPasswordChangeModal])
+
   // Load photos effect - runs when modal is closed
   useEffect(() => {
     // Only load photos if:
@@ -267,7 +305,22 @@ function PortfolioManageContent() {
       // Check if password change is still required
       const stillRequired = await requiresPasswordChange(currentUser)
       if (!stillRequired) {
-        // Password changed successfully, reset flags and close modal
+        // Password changed successfully, update session to remove pendingPasswordChange flag
+        if (typeof window !== 'undefined' && currentUser) {
+          const sessionStr = localStorage.getItem('currentSession')
+          if (sessionStr) {
+            try {
+              const session = JSON.parse(sessionStr)
+              // Remove pendingPasswordChange flag to make session permanent
+              delete session.pendingPasswordChange
+              localStorage.setItem('currentSession', JSON.stringify(session))
+            } catch (e) {
+              console.error('Error updating session:', e)
+            }
+          }
+        }
+        
+        // Reset flags and close modal
         passwordCheckDoneRef.current = false
         modalShownRef.current = false
         setShowPasswordChangeModal(false)
