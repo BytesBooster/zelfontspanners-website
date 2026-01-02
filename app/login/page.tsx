@@ -23,12 +23,8 @@ export default function LoginPage() {
       setMembers(sorted)
       
       if (isLoggedIn && currentUser) {
-        const needsChange = await requiresPasswordChange(currentUser)
-        if (needsChange) {
-          router.push('/change-password')
-        } else {
-          router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
-        }
+        // Always redirect to portfolio-manage, it will handle password change modal
+        router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
       }
     }
     init()
@@ -47,10 +43,11 @@ export default function LoginPage() {
 
     if (result.success) {
       if (result.requiresPasswordChange) {
+        // Redirect to portfolio-manage which will show the modal
         setMessage({ text: 'Je moet je wachtwoord wijzigen voordat je verder kunt gaan.', type: 'error' })
         setTimeout(() => {
-          router.push('/change-password')
-        }, 1500)
+          router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
+        }, 500)
       } else {
         setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
         setTimeout(() => {

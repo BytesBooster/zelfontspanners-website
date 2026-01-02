@@ -25,9 +25,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check password (support both plain text and case variations)
-    const passwordMatch = account.password === password || 
-                         account.password === password.toLowerCase() || 
-                         account.password === password.charAt(0).toUpperCase() + password.slice(1).toLowerCase()
+    // Normalize both passwords for comparison
+    const normalizedStored = account.password?.trim()
+    const normalizedInput = password?.trim()
+    
+    const passwordMatch = normalizedStored === normalizedInput || 
+                         normalizedStored === normalizedInput.toLowerCase() || 
+                         normalizedStored === normalizedInput.charAt(0).toUpperCase() + normalizedInput.slice(1).toLowerCase() ||
+                         normalizedStored?.toLowerCase() === normalizedInput.toLowerCase()
     
     if (!passwordMatch) {
       return NextResponse.json({ success: false, message: 'Onjuist wachtwoord' }, { status: 401 })

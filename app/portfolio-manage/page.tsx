@@ -56,8 +56,8 @@ function PortfolioManageContent() {
         passwordCheckDoneRef.current = true
         
         if (needsChange) {
-          // Show modal only once
-          if (!modalShownRef.current) {
+          // Show modal only once - prevent duplicate modals
+          if (!modalShownRef.current && !showPasswordChangeModal) {
             modalShownRef.current = true
             setShowPasswordChangeModal(true)
           }

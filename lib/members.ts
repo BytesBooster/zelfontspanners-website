@@ -43,7 +43,7 @@ export const activeMembers = [
 export const honoraryMembers: string[] = []
 
 export function getAllMembers(): string[] {
-  return [...activeMembers, ...honoraryMembers]
+  return ['Admin', ...activeMembers, ...honoraryMembers]
 }
 
 export function getInitials(name: string): string {
