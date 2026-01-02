@@ -42,7 +42,17 @@ echo.
 
 REM SSH commando's uitvoeren
 echo Stap 2: Deployen op server...
-%SSH_CMD% %SERVER_USER%@%SERVER_HOST% "cd %SERVER_PATH% && git pull && chmod +x deploy.sh && ./deploy.sh"
+echo.
+echo Let op: Je wordt gevraagd om SSH wachtwoord.
+echo.
+
+REM Eerst conflicts oplossen, dan deployen
+echo Oplossen van mogelijke Git conflicts...
+%SSH_CMD% %SERVER_USER%@%SERVER_HOST% "cd %SERVER_PATH% && git stash push -m 'Auto-stash before deploy' 2>/dev/null; git fetch origin; git reset --hard origin/main 2>/dev/null || git reset --hard origin/master 2>/dev/null; git pull origin main 2>/dev/null || git pull origin master 2>/dev/null"
+
+echo.
+echo Uitvoeren deploy script...
+%SSH_CMD% %SERVER_USER%@%SERVER_HOST% "cd %SERVER_PATH% && chmod +x deploy.sh && ./deploy.sh"
 
 if %errorlevel% equ 0 (
     echo.

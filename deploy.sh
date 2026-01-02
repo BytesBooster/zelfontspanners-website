@@ -6,6 +6,18 @@ cd /var/www/vhosts/zelfontspanners.nl/nodejs
 chmod +x deploy.sh 2>/dev/null || true
 chown psaadm:psaserv deploy.sh 2>/dev/null || true
 
+# Stash lokale wijzigingen voordat we pullen (om merge conflicts te voorkomen)
+echo "Stashing lokale wijzigingen..."
+git stash push -m "Auto-stash before deploy - $(date)" 2>/dev/null || true
+
+# Reset naar remote state als er nog steeds conflicten zijn
+echo "Pulling laatste wijzigingen..."
+git fetch origin
+git reset --hard origin/main 2>/dev/null || git reset --hard origin/master 2>/dev/null || true
+
+# Pull laatste wijzigingen
+git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
+
 /usr/bin/npm run build
 
 # Kopieer public folder en .next/server naar standalone build
