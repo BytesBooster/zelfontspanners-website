@@ -66,9 +66,12 @@ echo "✅ Alle oude bestanden verwijderd"
 echo "⏸️  Stopping PM2..."
 pm2 stop zelfontspanners 2>/dev/null || true
 
-# Remove old build to force fresh build
-echo "🗑️  Removing old .next build..."
+# Remove old build to force fresh build - AGGRESSIVE
+echo "🗑️  Removing old .next build completely..."
 rm -rf .next
+# Also remove specific old layout chunks that might contain modals
+find .next -name "layout-94f0854bcc52beb1.js" -delete 2>/dev/null || true
+find .next -name "*layout-94f0854bcc52beb1*" -delete 2>/dev/null || true
 
 # Install dependencies
 echo "📦 Installing dependencies..."
@@ -87,6 +90,18 @@ echo "🔨 Building Next.js app..."
 export NODE_OPTIONS="--max-old-space-size=4096"
 BUILD_OUTPUT=$($NPM_CMD run build 2>&1)
 BUILD_EXIT=$?
+
+# Verify PasswordResetModal is NOT in the new build
+if [ $BUILD_EXIT -eq 0 ]; then
+  echo "🔍 Verifying PasswordResetModal is NOT in build..."
+  if grep -r "PasswordResetModal" .next 2>/dev/null | head -1; then
+    echo "⚠️  WARNING: PasswordResetModal STILL IN BUILD! Removing..."
+    find .next -type f -name "*.js" -exec grep -l "PasswordResetModal" {} \; 2>/dev/null | xargs rm -f 2>/dev/null || true
+    echo "⚠️  Oude modal-bestanden verwijderd, maar rebuild nodig!"
+  else
+    echo "✅ PasswordResetModal NOT in build (goed!)"
+  fi
+fi
 
 if [ $BUILD_EXIT -ne 0 ]; then
     echo "❌ Build failed!"
