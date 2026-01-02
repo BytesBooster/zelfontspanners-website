@@ -74,27 +74,66 @@ if ! grep -q '"build"' package.json; then
     exit 1
 fi
 
-# Build de applicatie
+# Build de applicatie met extra memory voor webpack
 echo ""
 echo "Building applicatie..."
-$NPM_PATH run build
+echo "Memory check:"
+free -h | head -2
+echo ""
+
+# Check Node.js versie voor memory flag
+NODE_PATH=$(which node 2>/dev/null || echo "")
+if [ -z "$NODE_PATH" ]; then
+    if [ -f "/usr/bin/node" ]; then
+        NODE_PATH="/usr/bin/node"
+    elif [ -f "/usr/local/bin/node" ]; then
+        NODE_PATH="/usr/local/bin/node"
+    elif [ -f "/opt/plesk/node/18/bin/node" ]; then
+        NODE_PATH="/opt/plesk/node/18/bin/node"
+    fi
+fi
+
+# Probeer build met extra memory (voor webpack memory issues)
+if [ -n "$NODE_PATH" ]; then
+    echo "Using Node.js: $NODE_PATH"
+    echo "Node version: $($NODE_PATH --version)"
+    
+    # Set NODE_OPTIONS voor extra memory
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    echo "Memory limit: 4GB (via NODE_OPTIONS)"
+fi
+
+# Build met verbose output voor betere error messages
+echo ""
+echo "Starting build (dit kan even duren)..."
+$NPM_PATH run build 2>&1 | tee build-output.log
 
 # Check of build succesvol was
-BUILD_EXIT_CODE=$?
+BUILD_EXIT_CODE=${PIPESTATUS[0]}
 if [ $BUILD_EXIT_CODE -ne 0 ]; then
     echo ""
     echo "=========================================="
     echo "ERROR: Build gefaald!"
     echo "=========================================="
-    echo "Controleer de build errors hierboven."
+    echo ""
+    echo "Laatste 50 regels van build output:"
+    echo "----------------------------------------"
+    tail -50 build-output.log
+    echo "----------------------------------------"
+    echo ""
     echo "PM2 wordt NIET herstart om oude werkende versie te behouden."
     echo ""
-    echo "Om de build errors te zien, voer handmatig uit:"
-    echo "  cd $PWD"
-    echo "  npm run build"
+    echo "Mogelijke oplossingen:"
+    echo "1. Check memory: free -h"
+    echo "2. Reinstall dependencies: rm -rf node_modules package-lock.json && npm install"
+    echo "3. Check Node.js versie: node --version"
+    echo "4. Voer diagnose uit: bash diagnose-build-error.sh"
     echo ""
     exit 1
 fi
+
+# Cleanup build log als succesvol
+rm -f build-output.log
 
 echo ""
 echo "✓ Build succesvol!"
