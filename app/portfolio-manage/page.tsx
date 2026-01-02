@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 // Image component not needed here - using regular img tags
 import Link from 'next/link'
-import { useAuth, canAccessPortfolio, requiresPasswordChange, changePassword } from '@/lib/auth'
+import { useAuth, canAccessPortfolio, requiresPasswordChange } from '@/lib/auth'
 import { loadPortfolioData, addPortfolioPhoto, deletePortfolioPhoto, updatePortfolioOrder, PortfolioPhoto } from '@/lib/portfolio'
 
 function PortfolioManageContent() {
@@ -20,15 +20,6 @@ function PortfolioManageContent() {
   const [uploadTitle, setUploadTitle] = useState('')
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
-  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false)
-  const modalShownRef = useRef(false)
-  const [passwordChangeForm, setPasswordChangeForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
-  const [passwordChangeMessage, setPasswordChangeMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
@@ -56,17 +47,15 @@ function PortfolioManageContent() {
         passwordCheckDoneRef.current = true
         
         if (needsChange) {
-          // Show modal only once - prevent duplicate modals
-          if (!modalShownRef.current && !showPasswordChangeModal) {
-            modalShownRef.current = true
-            setShowPasswordChangeModal(true)
-          }
-        } else {
-          // Password is OK, load photos
-          const memberName = memberParam || currentUser
-          if (!memberParam || canAccessPortfolio(memberParam)) {
-            loadPhotos(memberName)
-          }
+          // Redirect to change-password page
+          router.push('/change-password')
+          return
+        }
+        
+        // Password is OK, load photos
+        const memberName = memberParam || currentUser
+        if (!memberParam || canAccessPortfolio(memberParam)) {
+          loadPhotos(memberName)
         }
       } catch (error) {
         console.error('Error checking password requirement:', error)
@@ -83,52 +72,13 @@ function PortfolioManageContent() {
     checkPassword()
   }, [isLoggedIn, currentUser]) // Removed memberParam from dependencies to prevent re-runs
 
-  // Effect to handle page unload/visibility change when password reset is pending
-  useEffect(() => {
-    if (!showPasswordChangeModal) {
-      return // Only active when modal is showing
-    }
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Remove session if user leaves page without changing password
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('currentSession')
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      // If page becomes hidden (user switches tab, minimizes, etc.) and modal is still showing
-      // Remove session after a short delay to allow for navigation
-      if (document.hidden && showPasswordChangeModal) {
-        setTimeout(() => {
-          if (showPasswordChangeModal && typeof window !== 'undefined') {
-            localStorage.removeItem('currentSession')
-            // Redirect to login page
-            window.location.href = '/login'
-          }
-        }, 100)
-      }
-    }
-
-    // Add event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [showPasswordChangeModal])
-
-  // Load photos effect - runs when modal is closed
+  // Load photos effect - runs when password check is done
   useEffect(() => {
     // Only load photos if:
     // 1. User is logged in
     // 2. Password check is done
-    // 3. Modal is not showing
-    // 4. User has access
-    if (!isLoggedIn || !currentUser || !passwordCheckDoneRef.current || showPasswordChangeModal) {
+    // 3. User has access
+    if (!isLoggedIn || !currentUser || !passwordCheckDoneRef.current) {
       return
     }
 
@@ -138,7 +88,7 @@ function PortfolioManageContent() {
 
     const memberName = memberParam || currentUser
     loadPhotos(memberName)
-  }, [isLoggedIn, currentUser, memberParam, showPasswordChangeModal])
+  }, [isLoggedIn, currentUser, memberParam])
 
   const loadPhotos = async (memberName: string) => {
     setLoading(true)
@@ -273,73 +223,6 @@ function PortfolioManageContent() {
     setEditTitle('')
   }
 
-  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setPasswordChangeMessage(null)
-
-    if (!passwordChangeForm.currentPassword || !passwordChangeForm.newPassword || !passwordChangeForm.confirmPassword) {
-      setPasswordChangeMessage({ text: 'Vul alle velden in', type: 'error' })
-      return
-    }
-
-    if (passwordChangeForm.newPassword !== passwordChangeForm.confirmPassword) {
-      setPasswordChangeMessage({ text: 'De nieuwe wachtwoorden komen niet overeen', type: 'error' })
-      return
-    }
-
-    if (passwordChangeForm.newPassword.length < 6) {
-      setPasswordChangeMessage({ text: 'Nieuw wachtwoord moet minimaal 6 tekens lang zijn', type: 'error' })
-      return
-    }
-
-    if (!currentUser) {
-      setPasswordChangeMessage({ text: 'Geen gebruiker gevonden', type: 'error' })
-      return
-    }
-
-    setPasswordChangeLoading(true)
-    const result = await changePassword(currentUser, passwordChangeForm.currentPassword, passwordChangeForm.newPassword)
-
-    if (result.success) {
-      setPasswordChangeMessage({ text: 'Wachtwoord succesvol gewijzigd!', type: 'success' })
-      // Check if password change is still required
-      const stillRequired = await requiresPasswordChange(currentUser)
-      if (!stillRequired) {
-        // Password changed successfully, update session to remove pendingPasswordChange flag
-        if (typeof window !== 'undefined' && currentUser) {
-          const sessionStr = localStorage.getItem('currentSession')
-          if (sessionStr) {
-            try {
-              const session = JSON.parse(sessionStr)
-              // Remove pendingPasswordChange flag to make session permanent
-              delete session.pendingPasswordChange
-              localStorage.setItem('currentSession', JSON.stringify(session))
-            } catch (e) {
-              console.error('Error updating session:', e)
-            }
-          }
-        }
-        
-        // Reset flags and close modal
-        passwordCheckDoneRef.current = false
-        modalShownRef.current = false
-        setShowPasswordChangeModal(false)
-        // Clear form
-        setPasswordChangeForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        })
-        // Reload page to refresh state
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }
-    } else {
-      setPasswordChangeMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
-    }
-    setPasswordChangeLoading(false)
-  }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -394,82 +277,7 @@ function PortfolioManageContent() {
   }
 
   return (
-    <>
-      {/* Password Change Modal - Cannot be closed until password is changed */}
-      {showPasswordChangeModal && (
-        <div 
-          className="password-change-modal" 
-          style={{ display: 'flex' }}
-          onClick={(e) => {
-            // Prevent closing when clicking outside
-            e.stopPropagation()
-          }}
-        >
-          <div 
-            className="password-change-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2>⚠️ Wachtwoord Wijzigen Verplicht</h2>
-            <p>Je wachtwoord is gereset door een administrator. Je moet je wachtwoord wijzigen voordat je verder kunt gaan.</p>
-            <p style={{ color: '#d4af37', fontWeight: '500' }}>Dit venster kan niet worden gesloten totdat je wachtwoord is gewijzigd.</p>
-            
-            {passwordChangeMessage && (
-              <div className={`form-message ${passwordChangeMessage.type}`} style={{ display: 'block', marginTop: '1rem' }}>
-                {passwordChangeMessage.text}
-              </div>
-            )}
-
-            <form className="login-form" onSubmit={handlePasswordChangeSubmit} style={{ marginTop: '2rem' }}>
-              <div className="form-group">
-                <label htmlFor="modalCurrentPassword">Huidig Wachtwoord</label>
-                <input
-                  type="password"
-                  id="modalCurrentPassword"
-                  required
-                  placeholder="Voer je huidige wachtwoord in"
-                  value={passwordChangeForm.currentPassword}
-                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                  disabled={passwordChangeLoading}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="modalNewPassword">Nieuw Wachtwoord</label>
-                <input
-                  type="password"
-                  id="modalNewPassword"
-                  required
-                  placeholder="Minimaal 6 tekens"
-                  value={passwordChangeForm.newPassword}
-                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                  disabled={passwordChangeLoading}
-                  minLength={6}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="modalConfirmPassword">Bevestig Nieuw Wachtwoord</label>
-                <input
-                  type="password"
-                  id="modalConfirmPassword"
-                  required
-                  placeholder="Bevestig je nieuwe wachtwoord"
-                  value={passwordChangeForm.confirmPassword}
-                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  disabled={passwordChangeLoading}
-                  minLength={6}
-                />
-              </div>
-              
-              <button type="submit" className="btn btn-primary" disabled={passwordChangeLoading} style={{ width: '100%', marginTop: '1rem' }}>
-                {passwordChangeLoading ? 'Wijzigen...' : 'Wachtwoord Wijzigen'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <section className="portfolio-manage-page">
+    <section className="portfolio-manage-page">
         <div className="container">
         <div className="section-header">
           <h1>Portfolio Beheer</h1>

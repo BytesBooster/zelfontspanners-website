@@ -33,6 +33,69 @@ export default function ChangePasswordPage() {
     check()
   }, [isLoggedIn, currentUser, router])
 
+  // Remove session if user leaves page without changing password
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Remove session if user leaves page without changing password
+      if (typeof window !== 'undefined') {
+        const sessionStr = localStorage.getItem('currentSession')
+        if (sessionStr) {
+          try {
+            const session = JSON.parse(sessionStr)
+            // Only remove if session has pendingPasswordChange flag
+            if (session.pendingPasswordChange) {
+              localStorage.removeItem('currentSession')
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      // If page becomes hidden, check if we should remove session
+      if (document.hidden && typeof window !== 'undefined') {
+        const sessionStr = localStorage.getItem('currentSession')
+        if (sessionStr) {
+          try {
+            const session = JSON.parse(sessionStr)
+            // Only remove if session has pendingPasswordChange flag
+            if (session.pendingPasswordChange) {
+              setTimeout(() => {
+                // Double check after delay
+                const checkSession = localStorage.getItem('currentSession')
+                if (checkSession) {
+                  try {
+                    const checkSessionObj = JSON.parse(checkSession)
+                    if (checkSessionObj.pendingPasswordChange) {
+                      localStorage.removeItem('currentSession')
+                      window.location.href = '/login'
+                    }
+                  } catch (e) {
+                    // Ignore
+                  }
+                }
+              }, 500)
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage(null)
@@ -65,6 +128,21 @@ export default function ChangePasswordPage() {
     const result = await changePassword(currentUser, formData.currentPassword, formData.newPassword)
 
     if (result.success) {
+      // Update session to remove pendingPasswordChange flag
+      if (typeof window !== 'undefined' && currentUser) {
+        const sessionStr = localStorage.getItem('currentSession')
+        if (sessionStr) {
+          try {
+            const session = JSON.parse(sessionStr)
+            // Remove pendingPasswordChange flag to make session permanent
+            delete session.pendingPasswordChange
+            localStorage.setItem('currentSession', JSON.stringify(session))
+          } catch (e) {
+            console.error('Error updating session:', e)
+          }
+        }
+      }
+      
       setMessage({ text: 'Wachtwoord succesvol gewijzigd! Je wordt doorgestuurd...', type: 'success' })
       setTimeout(() => {
         router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
