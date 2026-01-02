@@ -26,24 +26,30 @@ grep '"version"' package.json || echo "Geen versie gevonden"
 
 echo ""
 echo "🔍 Check of PasswordResetModal nog in build staat:"
-if grep -r "PasswordResetModal" .next 2>/dev/null | head -3; then
+if grep -ri "passwordresetmodal" .next 2>/dev/null | head -3; then
     echo "⚠️  PasswordResetModal GEVONDEN in build!"
+    echo "   Locaties:"
+    grep -ril "passwordresetmodal" .next 2>/dev/null | head -5
 else
     echo "✅ PasswordResetModal NIET gevonden in build (goed!)"
 fi
 
 echo ""
 echo "🔍 Check of PasswordResetGuard nog in build staat:"
-if grep -r "PasswordResetGuard" .next 2>/dev/null | head -3; then
+if grep -ri "passwordresetguard" .next 2>/dev/null | head -3; then
     echo "⚠️  PasswordResetGuard GEVONDEN in build!"
+    echo "   Locaties:"
+    grep -ril "passwordresetguard" .next 2>/dev/null | head -5
 else
     echo "✅ PasswordResetGuard NIET gevonden in build (goed!)"
 fi
 
 echo ""
 echo "🔍 Check of 'Safari fallback' logs nog in build staan:"
-if grep -r "Safari fallback" .next 2>/dev/null | head -3; then
+if grep -ri "safari fallback" .next 2>/dev/null | head -3; then
     echo "⚠️  Safari fallback logs GEVONDEN in build!"
+    echo "   Locaties:"
+    grep -ril "safari fallback" .next 2>/dev/null | head -5
 else
     echo "✅ Safari fallback logs NIET gevonden in build (goed!)"
 fi
