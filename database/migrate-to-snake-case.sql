@@ -22,3 +22,4 @@
 -- ALTER TABLE photo_likes RENAME COLUMN "createdAt" TO created_at;
 -- etc.
 
+

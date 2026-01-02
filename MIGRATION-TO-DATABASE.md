@@ -73,3 +73,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key
 - Error handling moet worden toegevoegd voor database errors
 - Loading states moeten worden toegevoegd waar nodig
 
+

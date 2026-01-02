@@ -61,3 +61,4 @@ SELECT
   COUNT(CASE WHEN password != 'welkom2026!' THEN 1 END) as accounts_with_changed_password
 FROM accounts;
 
+

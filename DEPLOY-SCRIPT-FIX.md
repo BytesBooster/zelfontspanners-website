@@ -117,3 +117,4 @@ Als het probleem blijft bestaan:
 3. Controleer of Node.js correct geïnstalleerd is: `node --version`
 4. Controleer of npm correct geïnstalleerd is: `npm --version`
 
+

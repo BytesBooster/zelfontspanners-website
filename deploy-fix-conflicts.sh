@@ -39,3 +39,4 @@ echo "Git conflicts opgelost!"
 echo "Je kunt nu ./deploy.sh uitvoeren"
 echo "=========================================="
 
+

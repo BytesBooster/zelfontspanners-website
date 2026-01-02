@@ -351,3 +351,4 @@ Als er problemen zijn:
 3. Check Supabase dashboard voor database errors
 4. Check webserver logs: `sudo tail -f /var/log/nginx/error.log` (Nginx) of `sudo tail -f /var/log/apache2/error.log` (Apache)
 
+

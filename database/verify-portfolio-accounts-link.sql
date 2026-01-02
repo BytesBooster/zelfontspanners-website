@@ -37,3 +37,4 @@ LEFT JOIN portfolio_data p ON a.member_name = p.member_name
 WHERE p.id IS NULL
 ORDER BY a.member_name;
 
+

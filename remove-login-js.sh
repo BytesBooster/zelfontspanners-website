@@ -25,3 +25,4 @@ echo ""
 echo "Herstart PM2 om wijzigingen door te voeren:"
 echo "pm2 restart zelfontspanners"
 
+

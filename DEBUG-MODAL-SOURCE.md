@@ -90,3 +90,4 @@ Als je de bron hebt gevonden:
 3. **Herstart PM2**: `pm2 restart zelfontspanners`
 4. **Rebuild Next.js**: `npm run build` op server
 
+

@@ -30,3 +30,4 @@ Deze oude bestanden bevatten nog code voor password reset modals die niet meer g
 
 Na deployment, verwijder deze bestanden van de server om te voorkomen dat ze nog geserveerd worden.
 
+

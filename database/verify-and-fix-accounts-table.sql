@@ -107,3 +107,4 @@ SELECT
     COUNT(CASE WHEN password IN ('welkom2026!', 'Welkom2026!', 'test123') THEN 1 END) AS default_passwords
 FROM accounts;
 
+

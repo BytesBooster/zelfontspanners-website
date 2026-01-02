@@ -39,3 +39,4 @@ echo ""
 echo "🔍 Checking for old HTML files:"
 find . -maxdepth 2 -name "*.html" -type f | grep -v node_modules | grep -v ".next" | head -10
 
+

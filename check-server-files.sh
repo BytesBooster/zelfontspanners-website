@@ -64,3 +64,4 @@ echo "✅ Check voltooid!"
 echo ""
 echo "TIP: Open browser console (F12) en kijk naar [DEBUG] logs om te zien waar modals vandaan komen"
 
+

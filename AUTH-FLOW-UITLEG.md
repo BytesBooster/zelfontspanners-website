@@ -265,3 +265,4 @@ Het login- en password reset systeem werkt volledig via Next.js routes en Supaba
 
 Het systeem is nu veel simpeler en betrouwbaarder dan voorheen!
 
+

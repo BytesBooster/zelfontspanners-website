@@ -66,3 +66,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-key
 - Static portfolio data uit portfolio-data.js wordt nog steeds gebruikt als fallback
 - Bestaande localStorage data wordt niet automatisch gemigreerd
 
+

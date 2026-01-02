@@ -68,3 +68,4 @@ Test of alles werkt:
 2. **Dan**: Voer `database/fix-column-names-safe.sql` uit (als je al tabellen had)
 3. **Daarna**: Voer `database/reset-all-passwords.sql` uit (als je accounts wilt resetten)
 
+

@@ -21,3 +21,4 @@ echo ""
 echo "✅ If old hash is not found, the problem is browser cache."
 echo "   User needs to clear browser cache completely."
 
+

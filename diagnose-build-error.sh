@@ -120,3 +120,4 @@ echo "2. Node memory: node --max-old-space-size=4096 (voor memory issues)"
 echo "3. Reinstall: rm -rf node_modules package-lock.json && npm install"
 echo "=========================================="
 
+

@@ -45,3 +45,4 @@ npx tsx scripts/migrate-portfolios-to-db.ts
 
 Je zou nu geen "environment variables moeten zijn ingesteld" error meer moeten krijgen.
 
+

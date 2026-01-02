@@ -107,3 +107,4 @@ Als je bestaande data in localStorage hebt:
 - Gebruik de admin pagina om wachtwoorden te resetten
 - Controleer of de password field correct wordt opgeslagen
 
+

@@ -51,3 +51,4 @@ SELECT
   COUNT(CASE WHEN password = 'welkom2026!' THEN 1 END) as accounts_with_default_password
 FROM accounts;
 
+

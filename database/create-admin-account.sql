@@ -30,3 +30,4 @@ SELECT
 FROM accounts
 WHERE is_admin = TRUE;
 
+

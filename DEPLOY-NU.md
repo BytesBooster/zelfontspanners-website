@@ -210,3 +210,4 @@ Als er problemen zijn:
 3. Check Supabase dashboard voor database errors
 4. Controleer Nginx configuratie in Plesk
 
+

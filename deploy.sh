@@ -45,6 +45,16 @@ git pull origin main || {
     echo "⚠️  Git pull failed, maar we gaan door..."
 }
 
+# Remove old files that might contain modals
+echo "🗑️  Removing old HTML/JS files that might contain modals..."
+rm -f login.html portfolio-manage.html index.html portfolio.html
+rm -f leden.html contact.html agenda.html over-ons.html
+rm -f sponsors.html foto-van-de-maand.html
+rm -f auth.js login.js portfolio-manage.js components.js
+rm -f script.js portfolio.js agenda.js contact.js
+rm -f foto-van-de-maand.js leden.js over-ons.js
+echo "✅ Oude bestanden verwijderd"
+
 # Stop PM2 temporarily
 echo "⏸️  Stopping PM2..."
 pm2 stop zelfontspanners 2>/dev/null || true

@@ -299,3 +299,4 @@ Als je problemen hebt met deployment:
 3. Controleer environment variables
 4. Controleer Supabase connectie
 
+

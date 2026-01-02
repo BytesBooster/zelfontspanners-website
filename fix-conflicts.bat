@@ -50,3 +50,4 @@ echo.
 echo Conflicts opgelost! Je kunt nu deploy-via-ssh.bat opnieuw uitvoeren.
 pause
 
+

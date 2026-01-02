@@ -187,3 +187,4 @@ ssh root@185.255.131.147 "cd /var/www/vhosts/zelfontspanners.nl/nodejs && git pu
 - ✅ Test altijd eerst lokaal: `npm run build`
 - ✅ Check PM2 status na deployment: `pm2 status`
 
+

@@ -70,3 +70,4 @@ Na cache clear en rebuild zou je:
 
 4. **Test in incognito/private mode** om cache te omzeilen
 
+

@@ -100,3 +100,4 @@ echo "Als alle checks geslaagd zijn, probeer dan:"
 echo "  ./deploy.sh"
 echo ""
 
+
