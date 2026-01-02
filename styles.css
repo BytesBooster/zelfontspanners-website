@@ -4249,6 +4249,8 @@ body.dark-page .event-card:hover {
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.3s ease;
+    pointer-events: auto;
+    overflow-y: auto;
 }
 
 .password-change-modal-content {
@@ -4265,6 +4267,8 @@ body.dark-page .event-card:hover {
     text-align: center;
     position: relative;
     animation: slideUp 0.3s ease;
+    pointer-events: auto;
+    z-index: 100000;
 }
 
 .password-change-modal-content h2 {
@@ -4301,6 +4305,8 @@ body.dark-page .event-card:hover {
     border-radius: 8px;
     color: #ffffff;
     font-size: 1rem;
+    pointer-events: auto;
+    cursor: text;
 }
 
 .password-change-modal-content input[type="password"]:focus {
