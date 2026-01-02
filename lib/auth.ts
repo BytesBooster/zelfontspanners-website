@@ -73,8 +73,16 @@ export function useAuth() {
   // Use refs to track current values and prevent unnecessary updates
   const currentStateRef = useRef({ isLoggedIn: false, currentUser: null as string | null, requiresPasswordChange: false })
   const isInitializedRef = useRef(false)
+  const lastCheckTimeRef = useRef(0)
+  const CHECK_THROTTLE_MS = 100 // Prevent checking more than once per 100ms
 
   const checkAuth = useCallback(() => {
+    // Throttle to prevent rapid-fire calls
+    const now = Date.now()
+    if (now - lastCheckTimeRef.current < CHECK_THROTTLE_MS && isInitializedRef.current) {
+      return
+    }
+    lastCheckTimeRef.current = now
     if (typeof window === 'undefined') {
       if (!isInitializedRef.current) {
         setIsLoading(false)
@@ -112,22 +120,40 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    // Only run once on mount
-    if (!isInitializedRef.current) {
+    // Initialize on mount only
+    if (typeof window !== 'undefined' && !isInitializedRef.current) {
       checkAuth()
     }
     
-    // Listen for storage changes (for multi-tab support only)
-    // Note: storage events only fire for changes from OTHER tabs/windows, not the current one
+    // Setup storage listener for multi-tab support
+    // Storage events only fire for changes from OTHER tabs/windows, not the current one
+    if (typeof window === 'undefined') return
+    
+    let storageTimeout: NodeJS.Timeout | null = null
+    
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SESSION_KEY && e.storageArea === localStorage) {
-        checkAuth()
+      // Only process if this is from another tab/window (not our own writes)
+      if (e.key === SESSION_KEY && e.storageArea === localStorage && e.newValue !== e.oldValue) {
+        // Clear any pending timeout
+        if (storageTimeout) {
+          clearTimeout(storageTimeout)
+        }
+        // Debounce to prevent rapid-fire updates
+        storageTimeout = setTimeout(() => {
+          checkAuth()
+        }, 100)
       }
     }
     
     window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [checkAuth])
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      if (storageTimeout) {
+        clearTimeout(storageTimeout)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only run once on mount
 
   return { isLoggedIn, currentUser, requiresPasswordChange, isLoading, checkAuth }
 }

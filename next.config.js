@@ -11,7 +11,7 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Add cache headers to prevent old builds from being cached
+  // Add cache headers to prevent old builds from being cached - AGGRESSIVE
   async headers() {
     return [
       {
@@ -19,7 +19,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
+            value: 'no-cache, no-store, must-revalidate, max-age=0',
           },
           {
             key: 'Pragma',
@@ -29,6 +29,10 @@ const nextConfig = {
             key: 'Expires',
             value: '0',
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
         ],
       },
       {
@@ -36,7 +40,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
+            value: 'no-cache, no-store, must-revalidate, max-age=0',
           },
         ],
       },
@@ -45,7 +49,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'no-cache, no-store, must-revalidate, max-age=0',
           },
         ],
       },

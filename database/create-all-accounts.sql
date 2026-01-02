@@ -7,7 +7,6 @@ VALUES
   ('albert van der Meij', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('Anja Versteegen', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('Ann van rijn', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('Anne-Marie Dennissen', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('Ans Heisen', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('Astrid Kasteleijn', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('Astrid Sanders', 'welkom2026!', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

@@ -14,7 +14,6 @@ FROM (
         'albert van der Meij',
         'Anja Versteegen',
         'Ann van rijn',
-        'Anne-Marie Dennissen',
         'Ans Heisen',
         'Astrid Kasteleijn',
         'Astrid Sanders',
