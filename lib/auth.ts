@@ -50,11 +50,21 @@ function setSession(memberName: string, requiresPasswordChange: boolean = false)
     requiresPasswordChange
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  
+  // Trigger storage event for multi-tab support
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: SESSION_KEY,
+    newValue: localStorage.getItem(SESSION_KEY)
+  }))
 }
 
 function clearSession(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(SESSION_KEY)
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: SESSION_KEY,
+      newValue: null
+    }))
   }
 }
 
@@ -205,12 +215,6 @@ export async function login(memberName: string, password: string): Promise<{
 
     // Store session
     setSession(data.memberName, data.requiresPasswordChange || false)
-    
-    // Trigger storage event for multi-tab support
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: SESSION_KEY,
-      newValue: localStorage.getItem(SESSION_KEY)
-    }))
 
     return { 
       success: true, 
@@ -225,12 +229,7 @@ export async function login(memberName: string, password: string): Promise<{
 export function logout(): void {
   clearSession()
   
-  // Trigger storage event
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: SESSION_KEY,
-      newValue: null
-    }))
     window.location.href = '/login'
   }
 }
@@ -267,10 +266,6 @@ export async function changePassword(
     const session = getSession()
     if (session && session.memberName === memberName) {
       setSession(memberName, false)
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: SESSION_KEY,
-        newValue: localStorage.getItem(SESSION_KEY)
-      }))
     }
 
     return { success: true, message: data.message || 'Wachtwoord succesvol gewijzigd' }

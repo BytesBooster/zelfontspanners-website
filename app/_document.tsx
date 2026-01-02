@@ -7,49 +7,38 @@ export default function Document() {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // BLOCK PASSWORD CHANGE MODAL - REMOVE IMMEDIATELY
+              // REMOVE ALL MODALS AND OVERLAYS - RUN BEFORE ANYTHING ELSE
               (function() {
-                function removePasswordModal() {
-                  const selectors = [
-                    '#password-change-modal',
-                    '.password-change-modal',
-                    '[id*="password-change"]',
-                    '[class*="password-change-modal"]'
-                  ];
-                  
-                  selectors.forEach(selector => {
+                function cleanup() {
+                  // Remove password modals
+                  ['#password-change-modal', '.password-change-modal', '[id*="password-change"]', '[class*="password-change"]'].forEach(sel => {
                     try {
-                      const elements = document.querySelectorAll(selector);
-                      elements.forEach(el => {
-                        if (el) {
-                          el.remove();
-                          console.log('Removed password modal:', selector);
-                        }
-                      });
+                      document.querySelectorAll(sel).forEach(el => el.remove());
                     } catch(e) {}
                   });
-                }
-                
-                // Run immediately
-                removePasswordModal();
-                
-                // Run on DOM ready
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', removePasswordModal);
-                }
-                
-                // Run repeatedly to catch dynamically created modals
-                setInterval(removePasswordModal, 100);
-                
-                // Watch for new elements
-                const observer = new MutationObserver(removePasswordModal);
-                if (document.body) {
-                  observer.observe(document.body, { childList: true, subtree: true });
-                } else {
-                  document.addEventListener('DOMContentLoaded', () => {
-                    observer.observe(document.body, { childList: true, subtree: true });
+                  
+                  // Remove blocking overlays
+                  document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"]').forEach(el => {
+                    const id = el.id || '';
+                    const cls = el.className || '';
+                    if (id.includes('password') || cls.includes('password') || cls.includes('modal')) {
+                      el.remove();
+                    }
                   });
+                  
+                  // Enable clicks
+                  if (document.body) {
+                    document.body.style.pointerEvents = 'auto';
+                    document.body.style.overflow = '';
+                  }
                 }
+                
+                cleanup();
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', cleanup);
+                }
+                setInterval(cleanup, 50);
+                new MutationObserver(cleanup).observe(document.documentElement, { childList: true, subtree: true });
               })();
             `,
           }}
@@ -62,4 +51,3 @@ export default function Document() {
     </Html>
   )
 }
-

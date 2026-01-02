@@ -19,6 +19,33 @@ export default function LoginPage() {
   const passwordInputRef = useRef<HTMLInputElement>(null)
   const memberSelectRef = useRef<HTMLSelectElement>(null)
 
+  // Remove any modals/overlays on mount
+  useEffect(() => {
+    const removeModals = () => {
+      // Remove password modals
+      document.querySelectorAll('#password-change-modal, .password-change-modal, [id*="password-change"], [class*="password-change-modal"]').forEach(el => el.remove())
+      
+      // Remove blocking overlays
+      document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"]').forEach(el => {
+        const id = el.id || ''
+        const cls = el.className || ''
+        if (id.includes('password') || cls.includes('password') || cls.includes('modal')) {
+          el.remove()
+        }
+      })
+      
+      // Enable clicks
+      if (document.body) {
+        document.body.style.pointerEvents = 'auto'
+        document.body.style.overflow = ''
+      }
+    }
+    
+    removeModals()
+    const interval = setInterval(removeModals, 100)
+    return () => clearInterval(interval)
+  }, [])
+
   // Initialize members list
   useEffect(() => {
     const init = async () => {
@@ -58,8 +85,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Clear previous messages
     setMessage(null)
     
     // Validation
@@ -82,36 +107,26 @@ export default function LoginPage() {
 
       if (result.success) {
         if (result.requiresPasswordChange) {
-          // Redirect immediately for password change
+          // Redirect immediately - NO MODAL
           router.push('/change-password')
         } else {
-          setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
-          setTimeout(() => {
-            router.push('/')
-          }, 500)
+          router.push('/')
         }
       } else {
         setMessage({ text: result.message || 'Onjuiste gegevens. Probeer het opnieuw.', type: 'error' })
-        // Clear password field on error
         setFormData(prev => ({ ...prev, password: '' }))
         passwordInputRef.current?.focus()
       }
     } catch (error: any) {
       console.error('Login error:', error)
       setMessage({ text: 'Er is een fout opgetreden. Probeer het opnieuw.', type: 'error' })
+      setFormData(prev => ({ ...prev, password: '' }))
       passwordInputRef.current?.focus()
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isSubmitting) {
-      handleSubmit(e as any)
-    }
-  }
-
-  // Show loading state while checking auth or initializing
   if (isLoading || isInitializing) {
     return (
       <section className="login-page">
@@ -155,8 +170,6 @@ export default function LoginPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, memberName: e.target.value }))}
                 disabled={isSubmitting}
                 autoFocus
-                aria-required="true"
-                aria-invalid={message?.type === 'error' && !formData.memberName}
               >
                 <option value="">Selecteer je naam...</option>
                 {members.map(member => (
@@ -175,11 +188,8 @@ export default function LoginPage() {
                 placeholder="Voer je wachtwoord in"
                 value={formData.password}
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                onKeyPress={handleKeyPress}
                 disabled={isSubmitting}
                 autoComplete="current-password"
-                aria-required="true"
-                aria-invalid={message?.type === 'error' && !formData.password}
               />
             </div>
             

@@ -21,61 +21,94 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // BLOCK ALL OLD MODAL CODE
+              // REMOVE ALL PASSWORD MODALS AND OVERLAYS IMMEDIATELY
               (function() {
-                // Remove any password-change-modal elements immediately
-                const removeModal = () => {
-                  const modal = document.getElementById('password-change-modal') || 
-                               document.querySelector('.password-change-modal') ||
-                               document.querySelector('[class*="password-change"]');
-                  if (modal) {
-                    modal.remove();
-                    console.log('Removed password-change-modal');
+                function removeAllModalsAndOverlays() {
+                  // Remove password modals
+                  const modalSelectors = [
+                    '#password-change-modal',
+                    '.password-change-modal',
+                    '[id*="password-change"]',
+                    '[class*="password-change-modal"]',
+                    '[class*="password-change"]'
+                  ];
+                  
+                  modalSelectors.forEach(selector => {
+                    try {
+                      const elements = document.querySelectorAll(selector);
+                      elements.forEach(el => {
+                        if (el) {
+                          el.remove();
+                          console.log('Removed:', selector);
+                        }
+                      });
+                    } catch(e) {}
+                  });
+                  
+                  // Remove any overlays/backdrops that block clicks
+                  const overlays = document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"], [style*="position: fixed"][style*="background"][style*="rgba"]');
+                  overlays.forEach(overlay => {
+                    const style = overlay.getAttribute('style') || '';
+                    if (style.includes('z-index') && (style.includes('99999') || style.includes('100000'))) {
+                      overlay.remove();
+                      console.log('Removed blocking overlay');
+                    }
+                  });
+                  
+                  // Remove any elements with high z-index that might block
+                  const highZIndex = document.querySelectorAll('[style*="z-index"]');
+                  highZIndex.forEach(el => {
+                    const style = el.getAttribute('style') || '';
+                    const zIndexMatch = style.match(/z-index:\\s*(\\d+)/);
+                    if (zIndexMatch && parseInt(zIndexMatch[1]) >= 9999) {
+                      const id = el.id || '';
+                      const className = el.className || '';
+                      if (id.includes('password') || className.includes('password') || className.includes('modal')) {
+                        el.remove();
+                        console.log('Removed high z-index element');
+                      }
+                    }
+                  });
+                  
+                  // Force enable pointer events on body
+                  if (document.body) {
+                    document.body.style.pointerEvents = 'auto';
+                    document.body.style.overflow = '';
                   }
-                };
+                  
+                  // Remove any fixed overlays
+                  const fixedElements = document.querySelectorAll('[style*="position: fixed"]');
+                  fixedElements.forEach(el => {
+                    const style = el.getAttribute('style') || '';
+                    const id = el.id || '';
+                    const className = el.className || '';
+                    if ((id.includes('password') || className.includes('password') || className.includes('modal')) && 
+                        style.includes('background') && style.includes('rgba')) {
+                      el.remove();
+                      console.log('Removed fixed overlay');
+                    }
+                  });
+                }
                 
                 // Run immediately
-                removeModal();
+                removeAllModalsAndOverlays();
                 
                 // Run on DOM ready
                 if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', removeModal);
-                } else {
-                  removeModal();
+                  document.addEventListener('DOMContentLoaded', removeAllModalsAndOverlays);
                 }
                 
-                // Run after a delay to catch dynamically created modals
-                setTimeout(removeModal, 100);
-                setTimeout(removeModal, 500);
-                setTimeout(removeModal, 1000);
+                // Run repeatedly
+                setInterval(removeAllModalsAndOverlays, 50);
                 
-                // Watch for dynamically added modals
-                const observer = new MutationObserver(() => {
-                  removeModal();
-                });
-                
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true
-                });
-                
-                // Override any functions that might show modals
-                if (typeof window !== 'undefined') {
-                  const originalCreateElement = document.createElement;
-                  document.createElement = function(tagName) {
-                    const element = originalCreateElement.call(this, tagName);
-                    if (tagName.toLowerCase() === 'div') {
-                      setTimeout(() => {
-                        if (element.classList && (
-                          element.classList.contains('password-change-modal') ||
-                          element.id === 'password-change-modal'
-                        )) {
-                          element.remove();
-                        }
-                      }, 0);
-                    }
-                    return element;
-                  };
+                // Watch for new elements
+                const observer = new MutationObserver(removeAllModalsAndOverlays);
+                if (document.body) {
+                  observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+                } else {
+                  document.addEventListener('DOMContentLoaded', () => {
+                    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+                  });
                 }
               })();
             `,
