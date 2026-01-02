@@ -24,8 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Gebruiker niet gevonden' }, { status: 401 })
     }
 
-    // Check password
-    if (account.password !== password) {
+    // Check password (support both plain text and case variations)
+    const passwordMatch = account.password === password || 
+                         account.password === password.toLowerCase() || 
+                         account.password === password.charAt(0).toUpperCase() + password.slice(1).toLowerCase()
+    
+    if (!passwordMatch) {
       return NextResponse.json({ success: false, message: 'Onjuist wachtwoord' }, { status: 401 })
     }
 
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
         success: true,
         memberName: memberName,
         sessionToken: btoa(JSON.stringify(session)),
-        requiresPasswordChange: account.password === 'test123' || account.password === 'welkom2026!' || account.password === 'Welkom2026!'
+        requiresPasswordChange: account.password_reset_required === true || account.password === 'test123' || account.password === 'welkom2026!' || account.password === 'Welkom2026!'
       })
     }
 
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
       success: true,
       memberName: memberName,
       sessionId: sessionData.id,
-      requiresPasswordChange: account.password === 'test123' || account.password === 'welkom2026!'
+      requiresPasswordChange: account.password_reset_required === true || account.password === 'test123' || account.password === 'welkom2026!' || account.password === 'Welkom2026!'
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Database error' }, { status: 500 })

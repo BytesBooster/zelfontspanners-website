@@ -37,11 +37,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Huidig wachtwoord is onjuist' }, { status: 401 })
     }
 
-    // Update password
+    // Update password and clear password_reset_required flag
     const { data, error } = await supabase
       .from(TABLES.ACCOUNTS)
       .update({
         password: newPassword,
+        password_reset_required: false,
         updated_at: new Date().toISOString()
       })
       .eq('member_name', memberName)

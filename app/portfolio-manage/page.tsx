@@ -32,59 +32,75 @@ function PortfolioManageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
-  // Use ref to prevent multiple checks
-  const passwordCheckDone = useRef(false)
-  const isCheckingPassword = useRef(false)
+  // Single ref to track if password check has been done
+  const passwordCheckDoneRef = useRef(false)
+  const passwordCheckInProgressRef = useRef(false)
 
+  // Password check effect - runs only once when user logs in
   useEffect(() => {
-    const check = async () => {
-      if (!isLoggedIn || !currentUser) {
-        passwordCheckDone.current = false
-        return
-      }
+    // Only run if logged in and check hasn't been done yet
+    if (!isLoggedIn || !currentUser || passwordCheckDoneRef.current) {
+      return
+    }
 
-      // Prevent multiple simultaneous checks
-      if (isCheckingPassword.current) {
-        return
-      }
+    // Prevent multiple simultaneous checks
+    if (passwordCheckInProgressRef.current) {
+      return
+    }
 
-      // Only check password once per session
-      if (!passwordCheckDone.current) {
-        isCheckingPassword.current = true
-        try {
-          // Check if password change is required
-          const needsChange = await requiresPasswordChange(currentUser)
-          passwordCheckDone.current = true
-          
-          if (needsChange && !modalShownRef.current) {
-            // Show modal instead of redirecting (only once)
+    passwordCheckInProgressRef.current = true
+
+    const checkPassword = async () => {
+      try {
+        const needsChange = await requiresPasswordChange(currentUser)
+        passwordCheckDoneRef.current = true
+        
+        if (needsChange) {
+          // Show modal only once
+          if (!modalShownRef.current) {
             modalShownRef.current = true
             setShowPasswordChangeModal(true)
-            isCheckingPassword.current = false
-            return
           }
-        } catch (error) {
-          console.error('Error checking password requirement:', error)
-        } finally {
-          isCheckingPassword.current = false
+        } else {
+          // Password is OK, load photos
+          const memberName = memberParam || currentUser
+          if (!memberParam || canAccessPortfolio(memberParam)) {
+            loadPhotos(memberName)
+          }
         }
+      } catch (error) {
+        console.error('Error checking password requirement:', error)
+        // On error, allow access (don't block user)
+        const memberName = memberParam || currentUser
+        if (!memberParam || canAccessPortfolio(memberParam)) {
+          loadPhotos(memberName)
+        }
+      } finally {
+        passwordCheckInProgressRef.current = false
       }
-
-      // If modal is showing, don't load photos yet
-      if (showPasswordChangeModal || modalShownRef.current) {
-        return
-      }
-
-      // Check if user can access this portfolio
-      if (memberParam && !canAccessPortfolio(memberParam)) {
-        return
-      }
-
-      const memberName = memberParam || currentUser
-      loadPhotos(memberName)
     }
-    check()
-  }, [isLoggedIn, currentUser, memberParam])
+
+    checkPassword()
+  }, [isLoggedIn, currentUser]) // Removed memberParam from dependencies to prevent re-runs
+
+  // Load photos effect - runs when modal is closed
+  useEffect(() => {
+    // Only load photos if:
+    // 1. User is logged in
+    // 2. Password check is done
+    // 3. Modal is not showing
+    // 4. User has access
+    if (!isLoggedIn || !currentUser || !passwordCheckDoneRef.current || showPasswordChangeModal) {
+      return
+    }
+
+    if (memberParam && !canAccessPortfolio(memberParam)) {
+      return
+    }
+
+    const memberName = memberParam || currentUser
+    loadPhotos(memberName)
+  }, [isLoggedIn, currentUser, memberParam, showPasswordChangeModal])
 
   const loadPhotos = async (memberName: string) => {
     setLoading(true)
@@ -251,9 +267,16 @@ function PortfolioManageContent() {
       // Check if password change is still required
       const stillRequired = await requiresPasswordChange(currentUser)
       if (!stillRequired) {
-        // Password changed successfully, reset check flag and close modal
-        passwordCheckDone.current = false
+        // Password changed successfully, reset flags and close modal
+        passwordCheckDoneRef.current = false
+        modalShownRef.current = false
         setShowPasswordChangeModal(false)
+        // Clear form
+        setPasswordChangeForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        })
         // Reload page to refresh state
         setTimeout(() => {
           window.location.reload()

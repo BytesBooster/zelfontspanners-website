@@ -51,47 +51,40 @@ if (startIndex === -1) {
   process.exit(1)
 }
 
-// Find the closing brace that matches the opening brace
-let braceCount = 0
-let endIndex = startIndex + startMarker.length
-let inString = false
-let stringChar = ''
-
-for (let i = startIndex + startMarker.length; i < portfolioDataContent.length; i++) {
-  const char = portfolioDataContent[i]
-  const prevChar = i > 0 ? portfolioDataContent[i - 1] : ''
-  
-  // Handle string literals
-  if (!inString && (char === '"' || char === "'" || char === '`')) {
-    inString = true
-    stringChar = char
-  } else if (inString && char === stringChar && prevChar !== '\\') {
-    inString = false
-  }
-  
-  // Count braces (only when not in string)
-  if (!inString) {
-    if (char === '{') braceCount++
-    if (char === '}') {
-      braceCount--
-      if (braceCount === 0) {
-        endIndex = i + 1
-        break
-      }
-    }
-  }
+// Find where the object ends (look for the closing brace and semicolon)
+// The object ends with }; after the closing brace
+let endIndex = portfolioDataContent.indexOf('};', startIndex)
+if (endIndex === -1) {
+  // Try without semicolon
+  endIndex = portfolioDataContent.lastIndexOf('}', portfolioDataContent.length - 10)
 }
 
-const dataString = portfolioDataContent.substring(startIndex + startMarker.length - 1, endIndex)
+if (endIndex === -1 || endIndex <= startIndex) {
+  console.error('❌ Kon einde van STATIC_PORTFOLIO_DATA niet vinden')
+  process.exit(1)
+}
+
+// Extract the data object (including the opening brace)
+const dataStart = startIndex + startMarker.length - 1 // Include the opening brace
+const dataString = portfolioDataContent.substring(dataStart, endIndex + 1)
 
 // Evaluate the JavaScript to get the data (only for migration script)
 let staticPortfolioData: Record<string, { name: string; photos: Array<{ src: string; title: string; category?: string }> }>
 try {
   // Use eval in a controlled way (only for migration script)
-  eval(`staticPortfolioData = ${dataString}`)
-} catch (error) {
-  console.error('❌ Fout bij het parsen van portfolio-data.js:', error)
+  // Wrap in try-catch to handle any syntax errors
+  const evalCode = `staticPortfolioData = ${dataString}`
+  eval(evalCode)
+  
+  if (!staticPortfolioData || typeof staticPortfolioData !== 'object') {
+    throw new Error('STATIC_PORTFOLIO_DATA is geen geldig object')
+  }
+  
+  console.log(`✅ Portfolio data geladen: ${Object.keys(staticPortfolioData).length} members`)
+} catch (error: any) {
+  console.error('❌ Fout bij het parsen van portfolio-data.js:', error.message)
   console.error('Tip: Controleer of portfolio-data.js geldige JavaScript syntax heeft')
+  console.error('Debug: Start index:', startIndex, 'End index:', endIndex)
   process.exit(1)
 }
 

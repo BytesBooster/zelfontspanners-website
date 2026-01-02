@@ -142,6 +142,12 @@ export async function requiresPasswordChange(memberName: string): Promise<boolea
     
     if (!data.account) return false
     
+    // Check password_reset_required flag first (most reliable)
+    if (data.account.password_reset_required === true) {
+      return true
+    }
+    
+    // Fallback: check for default passwords
     const defaultPasswords = ['test123', 'welkom2026!', 'Welkom2026!']
     return defaultPasswords.includes(data.account.password)
   } catch {
