@@ -24,6 +24,13 @@ rm -f auth.js
 rm -f login.js
 rm -f portfolio-manage.js
 rm -f components.js
+rm -f script.js
+rm -f portfolio.js
+rm -f agenda.js
+rm -f contact.js
+rm -f foto-van-de-maand.js
+rm -f leden.js
+rm -f over-ons.js
 
 echo "✅ Oude bestanden verwijderd!"
 echo ""
