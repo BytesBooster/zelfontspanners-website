@@ -20,6 +20,7 @@ sleep 2
 # VERWIJDER ALLES - zeer agressief
 echo "🗑️  Removing ALL build artifacts..."
 rm -rf .next
+rm -rf .next/standalone 2>/dev/null || true
 rm -rf node_modules/.cache
 rm -rf .next/cache 2>/dev/null || true
 rm -rf .next/static 2>/dev/null || true
@@ -31,6 +32,10 @@ rm -rf .next/static/chunks/app/_buildManifest.js 2>/dev/null || true
 rm -rf .next/server/app/_buildManifest.js 2>/dev/null || true
 find .next -name "*buildManifest*" -type f -delete 2>/dev/null || true
 find .next -name "*manifest*" -type f -delete 2>/dev/null || true
+
+# Verwijder ook standalone build directory (PM2 gebruikt deze)
+echo "🗑️  Removing standalone build directory..."
+rm -rf .next/standalone 2>/dev/null || true
 
 # Verwijder specifiek de problematische oude layout chunks
 echo "🗑️  Removing specific old layout file: layout-94f0854bcc52beb1.js..."
@@ -98,10 +103,31 @@ else
     echo "✅ 'Safari fallback' NOT found in new build (good!)"
 fi
 
+# Stop PM2 opnieuw om zeker te zijn dat het de nieuwe build gebruikt
+echo ""
+echo "⏸️  Stopping PM2 again to ensure clean restart..."
+pm2 stop zelfontspanners 2>/dev/null || true
+sleep 2
+
 # Herstart PM2
 echo ""
 echo "🔄 Restarting PM2..."
 pm2 restart zelfontspanners || pm2 start ecosystem.config.js
+sleep 3
+
+# Verifieer dat PM2 de nieuwe build gebruikt
+echo ""
+echo "🔍 Verifying PM2 is using new build..."
+if [ -f ".next/standalone/server.js" ]; then
+    echo "✅ Standalone build found"
+    if grep -q "94f0854bcc52beb1" .next/standalone/server.js 2>/dev/null; then
+        echo "❌ WARNING: Old hash found in standalone server.js!"
+    else
+        echo "✅ Old hash NOT found in standalone server.js"
+    fi
+else
+    echo "⚠️  Standalone build not found - PM2 might fail to start"
+fi
 
 echo ""
 echo "✅ Deployment voltooid!"
