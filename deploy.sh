@@ -117,6 +117,7 @@ fi
 # Build with extra memory AND environment variables
 echo "🔨 Building Next.js app (with env vars)..."
 export NODE_OPTIONS="--max-old-space-size=4096"
+export BUILD_VERSION=$(date +%s)  # Unix timestamp for unique build version
 BUILD_OUTPUT=$($NPM_CMD run build 2>&1)
 BUILD_EXIT=$?
 
@@ -148,6 +149,35 @@ fi
 
 echo "✅ Build successful!"
 echo ""
+
+# CRITICAL: Copy static files to standalone build (Next.js doesn't do this automatically)
+echo "📁 Copying static files to standalone build..."
+if [ -d ".next/static" ]; then
+    mkdir -p .next/standalone/.next/static
+    cp -r .next/static/* .next/standalone/.next/static/ 2>/dev/null || {
+        echo "⚠️  Warning: Failed to copy some static files, but continuing..."
+    }
+    echo "✅ Static files copied to standalone"
+else
+    echo "⚠️  Warning: .next/static directory not found!"
+fi
+
+# Copy public folder to standalone
+if [ -d "public" ]; then
+    mkdir -p .next/standalone/public
+    cp -r public/* .next/standalone/public/ 2>/dev/null || {
+        echo "⚠️  Warning: Failed to copy some public files, but continuing..."
+    }
+    echo "✅ Public files copied to standalone"
+fi
+
+# Verify critical files exist
+echo "🔍 Verifying critical files..."
+if [ ! -d ".next/standalone/.next/static" ]; then
+    echo "❌ ERROR: Static files directory not found in standalone build!"
+    echo "Build may be incomplete. Check build logs above."
+    exit 1
+fi
 
 # Restart PM2
 echo "🔄 Restarting PM2..."
