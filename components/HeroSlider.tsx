@@ -12,16 +12,47 @@ const heroImages = [
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
+  const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set())
 
   useEffect(() => {
+    // Check if images exist by trying to load them
+    heroImages.forEach((src, index) => {
+      const img = new window.Image()
+      img.onload = () => {
+        setImagesLoaded((prev) => new Set(prev).add(index))
+      }
+      img.onerror = () => {
+        setImageErrors((prev) => new Set(prev).add(index))
+      }
+      img.src = src
+    })
+  }, [])
+
+  useEffect(() => {
+    // Only start slider if we have at least one valid image
+    const validImages = heroImages.filter((_, index) => imagesLoaded.has(index))
+    if (validImages.length === 0) return
+
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length)
+      setCurrentSlide((prev) => {
+        // Skip to next valid image
+        let next = (prev + 1) % heroImages.length
+        while (imageErrors.has(next) && next !== prev) {
+          next = (next + 1) % heroImages.length
+        }
+        return next
+      })
     }, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [imagesLoaded, imageErrors])
 
   const handleImageError = (index: number) => {
     setImageErrors((prev) => new Set(prev).add(index))
+    setImagesLoaded((prev) => {
+      const newSet = new Set(prev)
+      newSet.delete(index)
+      return newSet
+    })
   }
 
   const goToSlide = (index: number) => {
@@ -36,8 +67,11 @@ export function HeroSlider() {
     setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)
   }
 
-  // If all images failed to load, show a single slide with gradient background
-  if (imageErrors.size === heroImages.length) {
+  // If all images failed to load or no images loaded, show gradient background
+  const hasValidImages = imagesLoaded.size > 0
+  const allImagesFailed = imageErrors.size === heroImages.length && imagesLoaded.size === 0
+
+  if (allImagesFailed || !hasValidImages) {
     return (
       <section id="home" className="home-hero">
         <div className="home-hero-slider" id="heroSlider">
@@ -62,29 +96,34 @@ export function HeroSlider() {
   return (
     <section id="home" className="home-hero">
       <div className="home-hero-slider" id="heroSlider">
-        {heroImages.map((src, index) => (
-          <div
-            key={index}
-            className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-            style={{ 
-              display: index === currentSlide ? 'block' : 'none',
-              background: imageErrors.has(index) 
-                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-                : undefined
-            }}
-          >
-            {!imageErrors.has(index) && (
-              <Image
-                src={src}
-                alt={`Hero slide ${index + 1}`}
-                fill
-                style={{ objectFit: 'cover' }}
-                priority={index === 0}
-                onError={() => handleImageError(index)}
-              />
-            )}
-          </div>
-        ))}
+        {heroImages.map((src, index) => {
+          const isValid = imagesLoaded.has(index) && !imageErrors.has(index)
+          const isActive = index === currentSlide && isValid
+          
+          return (
+            <div
+              key={index}
+              className={`hero-slide ${isActive ? 'active' : ''}`}
+              style={{ 
+                display: isActive ? 'block' : 'none',
+                background: !isValid
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  : undefined
+              }}
+            >
+              {isValid && (
+                <Image
+                  src={src}
+                  alt={`Hero slide ${index + 1}`}
+                  fill
+                  style={{ objectFit: 'cover' }}
+                  priority={index === 0}
+                  onError={() => handleImageError(index)}
+                />
+              )}
+            </div>
+          )
+        })}
       </div>
       <div className="home-hero-overlay"></div>
       <div className="home-hero-content">
