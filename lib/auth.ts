@@ -117,14 +117,29 @@ export async function initializeAccounts(): Promise<void> {
         .then(data => {
           if (!data.account) {
             // Account doesn't exist, create it
+            const isAdmin = member === 'Admin'
             fetch('/api/accounts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 memberName: member,
-                password: 'Welkom2026!'
+                password: 'Welkom2026!',
+                passwordResetRequired: true,
+                isAdmin: isAdmin
               })
             }).catch(err => console.error(`Failed to create account for ${member}:`, err))
+          } else if (member === 'Admin' && !data.account.is_admin) {
+            // Fix Admin account if it exists but doesn't have is_admin flag
+            fetch('/api/accounts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                memberName: 'Admin',
+                password: data.account.password || 'Welkom2026!',
+                passwordResetRequired: data.account.password_reset_required !== false,
+                isAdmin: true
+              })
+            }).catch(err => console.error('Failed to fix Admin account:', err))
           }
         })
         .catch(err => console.error(`Error checking account for ${member}:`, err))

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { memberName, password, createdAt, updatedAt } = body
+    const { memberName, password, createdAt, updatedAt, passwordResetRequired, isAdmin } = body
 
     if (!memberName || !password) {
       return NextResponse.json({ error: 'memberName and password are required' }, { status: 400 })
@@ -58,21 +58,39 @@ export async function POST(request: NextRequest) {
       .eq('member_name', memberName)
       .single()
 
-    const accountData = {
+    const accountData: any = {
       member_name: memberName,
       password,
       created_at: createdAt || new Date().toISOString(),
       updated_at: updatedAt || new Date().toISOString()
     }
 
+    // Add optional fields if provided
+    if (passwordResetRequired !== undefined) {
+      accountData.password_reset_required = passwordResetRequired
+    }
+    if (isAdmin !== undefined) {
+      accountData.is_admin = isAdmin
+    }
+
     if (existing) {
       // Update existing account
+      const updateData: any = {
+        password,
+        updated_at: new Date().toISOString()
+      }
+      
+      // Update optional fields if provided
+      if (passwordResetRequired !== undefined) {
+        updateData.password_reset_required = passwordResetRequired
+      }
+      if (isAdmin !== undefined) {
+        updateData.is_admin = isAdmin
+      }
+
       const { data, error } = await supabase
         .from(TABLES.ACCOUNTS)
-        .update({
-          password,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('member_name', memberName)
         .select()
         .single()
@@ -83,6 +101,14 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ account: data, created: false })
     } else {
+      // Create new account - set defaults if not provided
+      if (accountData.password_reset_required === undefined) {
+        accountData.password_reset_required = true // Default to requiring password change
+      }
+      if (accountData.is_admin === undefined) {
+        accountData.is_admin = false // Default to not admin
+      }
+
       // Create new account
       const { data, error } = await supabase
         .from(TABLES.ACCOUNTS)
