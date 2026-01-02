@@ -9,6 +9,13 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001, // Gebruik een andere poort dan bytesbooster (3000)
+        // Supabase Configuratie
+        NEXT_PUBLIC_SUPABASE_URL: 'https://emhidjqtxjnnrlgbbmyi.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtaGlkanF0eGpubnJsZ2JibXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzk4MzMsImV4cCI6MjA4MjM1NTgzM30.XwlTaxrcJzF6W4iJgMG09lfM636fsChKWJYLBlbJ-Ds',
+        // Cloudinary Configuratie (optioneel, maar staat in .env.local)
+        CLOUDINARY_CLOUD_NAME: 'dp9lcxbfu',
+        CLOUDINARY_API_KEY: '877964424671325',
+        CLOUDINARY_API_SECRET: 'jEZWkfFP9CTxvcqHdbuBgaL9tS0',
       },
       error_file: '/var/www/vhosts/zelfontspanners.nl/logs/pm2-error.log',
       out_file: '/var/www/vhosts/zelfontspanners.nl/logs/pm2-out.log',

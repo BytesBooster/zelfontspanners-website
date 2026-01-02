@@ -11,6 +11,7 @@ const heroImages = [
 
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -18,6 +19,10 @@ export function HeroSlider() {
     }, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  const handleImageError = (index: number) => {
+    setImageErrors((prev) => new Set(prev).add(index))
+  }
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index)
@@ -31,6 +36,29 @@ export function HeroSlider() {
     setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)
   }
 
+  // If all images failed to load, show a single slide with gradient background
+  if (imageErrors.size === heroImages.length) {
+    return (
+      <section id="home" className="home-hero">
+        <div className="home-hero-slider" id="heroSlider">
+          <div className="hero-slide active" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'block'
+          }} />
+        </div>
+        <div className="home-hero-overlay"></div>
+        <div className="home-hero-content">
+          <h1 className="home-hero-title">De Zelfontspanners</h1>
+          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
+          <div className="home-hero-actions">
+            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
+            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section id="home" className="home-hero">
       <div className="home-hero-slider" id="heroSlider">
@@ -38,15 +66,23 @@ export function HeroSlider() {
           <div
             key={index}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-            style={{ display: index === currentSlide ? 'block' : 'none' }}
+            style={{ 
+              display: index === currentSlide ? 'block' : 'none',
+              background: imageErrors.has(index) 
+                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                : undefined
+            }}
           >
-            <Image
-              src={src}
-              alt={`Hero slide ${index + 1}`}
-              fill
-              style={{ objectFit: 'cover' }}
-              priority={index === 0}
-            />
+            {!imageErrors.has(index) && (
+              <Image
+                src={src}
+                alt={`Hero slide ${index + 1}`}
+                fill
+                style={{ objectFit: 'cover' }}
+                priority={index === 0}
+                onError={() => handleImageError(index)}
+              />
+            )}
           </div>
         ))}
       </div>
