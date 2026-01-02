@@ -86,8 +86,36 @@ if ! $NPM_CMD list @supabase/supabase-js &> /dev/null; then
     $NPM_CMD install @supabase/supabase-js --legacy-peer-deps
 fi
 
-# Build with extra memory
-echo "🔨 Building Next.js app..."
+# Load environment variables BEFORE build (required for NEXT_PUBLIC_* vars)
+echo "📋 Loading environment variables..."
+if [ -f .env ]; then
+    echo "✅ .env file found, loading variables..."
+    export $(cat .env | grep -v '^#' | xargs)
+else
+    echo "⚠️  WARNING: .env file NOT found!"
+    echo "Creating .env file with default values..."
+    cat > .env << 'EOF'
+NODE_ENV=production
+PORT=3001
+NEXT_PUBLIC_SUPABASE_URL=https://emhidjqtxjnnrlgbbmyi.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtaGlkanF0eGpubnJsZ2JibXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzk4MzMsImV4cCI6MjA4MjM1NTgzM30.XwlTaxrcJzF6W4iJgMG09lfM636fsChKWJYLBlbJ-Ds
+CLOUDINARY_CLOUD_NAME=dp9lcxbfu
+CLOUDINARY_API_KEY=877964424671325
+CLOUDINARY_API_SECRET=jEZWkfFP9CTxvcqHdbuBgaL9tS0
+EOF
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
+# Verify critical env vars are set
+if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+    echo "❌ ERROR: Critical environment variables missing!"
+    echo "NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-NOT SET}"
+    echo "NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-NOT SET}"
+    exit 1
+fi
+
+# Build with extra memory AND environment variables
+echo "🔨 Building Next.js app (with env vars)..."
 export NODE_OPTIONS="--max-old-space-size=4096"
 BUILD_OUTPUT=$($NPM_CMD run build 2>&1)
 BUILD_EXIT=$?
