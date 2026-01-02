@@ -12,20 +12,39 @@ export default function Home() {
   const router = useRouter()
   const { isLoggedIn, currentUser, requiresPasswordChange, isLoading } = useAuth()
 
-  // Remove any modals/overlays on mount
+  // Remove any modals/overlays on mount - AGGRESSIVE
   useEffect(() => {
     const removeModals = () => {
+      // Remove by text content
+      const texts = ['Wachtwoord Wijzigen', 'Wachtwoord Instellen Vereist', 'Wijzig je wachtwoord', 'Je wachtwoord is gereset'];
+      texts.forEach(text => {
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+          if (el.textContent && el.textContent.includes(text)) {
+            const style = window.getComputedStyle(el);
+            if ((style.position === 'fixed' || style.position === 'absolute') && parseInt(style.zIndex) >= 1000) {
+              el.remove();
+            }
+          }
+        });
+      });
+      
       // Remove password modals
-      document.querySelectorAll('#password-change-modal, .password-change-modal, [id*="password-change"], [class*="password-change-modal"]').forEach(el => el.remove())
+      document.querySelectorAll('#password-change-modal, .password-change-modal, [id*="password-change"], [class*="password-change-modal"], [id*="password-reset"], [class*="password-reset"]').forEach(el => el.remove())
       
       // Remove blocking overlays
-      document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"]').forEach(el => {
-        const id = el.id || ''
-        const cls = el.className || ''
-        if (id.includes('password') || cls.includes('password') || cls.includes('modal')) {
-          el.remove()
+      document.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        const zIndex = parseInt(style.zIndex) || 0;
+        const position = style.position;
+        const text = el.textContent || '';
+        
+        if ((position === 'fixed' || position === 'absolute') && zIndex >= 1000) {
+          if (text.includes('Wachtwoord') || text.includes('wachtwoord') || text.includes('password')) {
+            el.remove();
+          }
         }
-      })
+      });
       
       // Enable clicks
       if (document.body) {
@@ -35,7 +54,7 @@ export default function Home() {
     }
     
     removeModals()
-    const interval = setInterval(removeModals, 100)
+    const interval = setInterval(removeModals, 25)
     return () => clearInterval(interval)
   }, [])
 

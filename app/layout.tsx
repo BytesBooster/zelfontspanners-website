@@ -21,16 +21,74 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // REMOVE ALL PASSWORD MODALS AND OVERLAYS IMMEDIATELY
+              // REMOVE ALL PASSWORD MODALS AND OVERLAYS IMMEDIATELY - AGGRESSIVE VERSION
               (function() {
                 function removeAllModalsAndOverlays() {
-                  // Remove password modals
+                  // Remove by text content - find elements containing password modal text
+                  const passwordModalTexts = [
+                    'Wachtwoord Wijzigen',
+                    'Wachtwoord Instellen Vereist',
+                    'Wijzig je wachtwoord voor extra veiligheid',
+                    'Je wachtwoord is gereset',
+                    'Je moet een nieuw wachtwoord instellen',
+                    'Huidige Wachtwoord',
+                    'Bevestig Nieuw Wachtwoord'
+                  ];
+                  
+                  // Find and remove elements containing these texts
+                  passwordModalTexts.forEach(text => {
+                    try {
+                      const walker = document.createTreeWalker(
+                        document.body || document.documentElement,
+                        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+                        null
+                      );
+                      
+                      let node;
+                      while (node = walker.nextNode()) {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent && node.textContent.includes(text)) {
+                          let parent = node.parentElement;
+                          // Go up the tree to find the modal container
+                          while (parent && parent !== document.body) {
+                            const style = window.getComputedStyle(parent);
+                            const zIndex = style.zIndex;
+                            const position = style.position;
+                            const display = style.display;
+                            
+                            // If it's a modal-like element (fixed/absolute with high z-index or display flex/block)
+                            if ((position === 'fixed' || position === 'absolute') && 
+                                (parseInt(zIndex) >= 1000 || display === 'flex' || display === 'block')) {
+                              // Check if it contains modal-like content
+                              const hasModalContent = parent.textContent && (
+                                parent.textContent.includes('Wachtwoord') || 
+                                parent.textContent.includes('wachtwoord') ||
+                                parent.textContent.includes('password')
+                              );
+                              
+                              if (hasModalContent) {
+                                parent.remove();
+                                console.log('Removed modal by text content:', text);
+                                break;
+                              }
+                            }
+                            parent = parent.parentElement;
+                          }
+                        }
+                      }
+                    } catch(e) {}
+                  });
+                  
+                  // Remove password modals by selectors
                   const modalSelectors = [
                     '#password-change-modal',
                     '.password-change-modal',
                     '[id*="password-change"]',
                     '[class*="password-change-modal"]',
-                    '[class*="password-change"]'
+                    '[class*="password-change"]',
+                    '[id*="password-reset"]',
+                    '[class*="password-reset"]',
+                    '[id*="password-setup"]',
+                    '[class*="password-setup"]'
                   ];
                   
                   modalSelectors.forEach(selector => {
@@ -46,46 +104,71 @@ export default function RootLayout({
                   });
                   
                   // Remove any overlays/backdrops that block clicks
-                  const overlays = document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"], [style*="position: fixed"][style*="background"][style*="rgba"]');
+                  const overlays = document.querySelectorAll('[style*="z-index: 99999"], [style*="z-index: 100000"], [style*="position: fixed"][style*="background"]');
                   overlays.forEach(overlay => {
                     const style = overlay.getAttribute('style') || '';
-                    if (style.includes('z-index') && (style.includes('99999') || style.includes('100000'))) {
-                      overlay.remove();
-                      console.log('Removed blocking overlay');
-                    }
-                  });
-                  
-                  // Remove any elements with high z-index that might block
-                  const highZIndex = document.querySelectorAll('[style*="z-index"]');
-                  highZIndex.forEach(el => {
-                    const style = el.getAttribute('style') || '';
-                    const zIndexMatch = style.match(/z-index:\\s*(\\d+)/);
-                    if (zIndexMatch && parseInt(zIndexMatch[1]) >= 9999) {
-                      const id = el.id || '';
-                      const className = el.className || '';
-                      if (id.includes('password') || className.includes('password') || className.includes('modal')) {
-                        el.remove();
-                        console.log('Removed high z-index element');
+                    const computedStyle = window.getComputedStyle(overlay);
+                    const zIndex = computedStyle.zIndex;
+                    const position = computedStyle.position;
+                    const bgColor = computedStyle.backgroundColor;
+                    
+                    if ((position === 'fixed' || position === 'absolute') && 
+                        (parseInt(zIndex) >= 1000 || style.includes('z-index'))) {
+                      const text = overlay.textContent || '';
+                      if (text.includes('Wachtwoord') || text.includes('wachtwoord') || text.includes('password')) {
+                        overlay.remove();
+                        console.log('Removed blocking overlay with password text');
                       }
                     }
                   });
                   
-                  // Force enable pointer events on body
+                  // Remove any elements with high z-index that might block
+                  const highZIndex = document.querySelectorAll('*');
+                  highZIndex.forEach(el => {
+                    try {
+                      const style = window.getComputedStyle(el);
+                      const zIndex = parseInt(style.zIndex) || 0;
+                      const position = style.position;
+                      
+                      if ((position === 'fixed' || position === 'absolute') && zIndex >= 1000) {
+                        const text = el.textContent || '';
+                        const id = el.id || '';
+                        const className = el.className || '';
+                        
+                        if (text.includes('Wachtwoord') || text.includes('wachtwoord') || 
+                            text.includes('password') || id.includes('password') || 
+                            className.includes('password') || className.includes('modal')) {
+                          el.remove();
+                          console.log('Removed high z-index password element');
+                        }
+                      }
+                    } catch(e) {}
+                  });
+                  
+                  // Force enable pointer events on body and html
                   if (document.body) {
                     document.body.style.pointerEvents = 'auto';
                     document.body.style.overflow = '';
+                  }
+                  if (document.documentElement) {
+                    document.documentElement.style.pointerEvents = 'auto';
+                    document.documentElement.style.overflow = '';
                   }
                   
                   // Remove any fixed overlays
                   const fixedElements = document.querySelectorAll('[style*="position: fixed"]');
                   fixedElements.forEach(el => {
-                    const style = el.getAttribute('style') || '';
+                    const text = el.textContent || '';
                     const id = el.id || '';
                     const className = el.className || '';
-                    if ((id.includes('password') || className.includes('password') || className.includes('modal')) && 
-                        style.includes('background') && style.includes('rgba')) {
+                    
+                    if ((text.includes('Wachtwoord') || text.includes('wachtwoord') || 
+                         text.includes('password') || id.includes('password') || 
+                         className.includes('password') || className.includes('modal')) &&
+                        (className.includes('modal') || id.includes('modal') || 
+                         window.getComputedStyle(el).backgroundColor !== 'rgba(0, 0, 0, 0)')) {
                       el.remove();
-                      console.log('Removed fixed overlay');
+                      console.log('Removed fixed password overlay');
                     }
                   });
                 }
@@ -98,8 +181,8 @@ export default function RootLayout({
                   document.addEventListener('DOMContentLoaded', removeAllModalsAndOverlays);
                 }
                 
-                // Run repeatedly
-                setInterval(removeAllModalsAndOverlays, 50);
+                // Run repeatedly - very aggressive
+                setInterval(removeAllModalsAndOverlays, 25);
                 
                 // Watch for new elements
                 const observer = new MutationObserver(removeAllModalsAndOverlays);
