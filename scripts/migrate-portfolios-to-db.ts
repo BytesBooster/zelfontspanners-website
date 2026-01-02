@@ -9,6 +9,23 @@
 import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
+import dotenv from 'dotenv'
+
+// Load environment variables from .env.local
+const envPath = path.join(process.cwd(), '.env.local')
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+  console.log('✅ .env.local geladen')
+} else {
+  // Try .env as fallback
+  const envFallback = path.join(process.cwd(), '.env')
+  if (fs.existsSync(envFallback)) {
+    dotenv.config({ path: envFallback })
+    console.log('✅ .env geladen')
+  } else {
+    console.log('⚠️  Geen .env.local of .env bestand gevonden')
+  }
+}
 
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
