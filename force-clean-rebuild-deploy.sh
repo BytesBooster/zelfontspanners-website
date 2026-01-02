@@ -24,6 +24,14 @@ rm -rf node_modules/.cache
 rm -rf .next/cache 2>/dev/null || true
 rm -rf .next/static 2>/dev/null || true
 
+# Verwijder ook build manifesten die de oude hash kunnen bevatten
+echo "🗑️  Removing build manifests..."
+rm -rf .next/BUILD_ID 2>/dev/null || true
+rm -rf .next/static/chunks/app/_buildManifest.js 2>/dev/null || true
+rm -rf .next/server/app/_buildManifest.js 2>/dev/null || true
+find .next -name "*buildManifest*" -type f -delete 2>/dev/null || true
+find .next -name "*manifest*" -type f -delete 2>/dev/null || true
+
 # Verwijder specifiek de problematische oude layout chunks
 echo "🗑️  Removing specific old layout file: layout-94f0854bcc52beb1.js..."
 find . -name "*layout-94f0854bcc52beb1*" -type f -delete 2>/dev/null || true
