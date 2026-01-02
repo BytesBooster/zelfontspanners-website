@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from(TABLES.PHOTO_COMMENTS)
       .select('*')
-      .eq('photoId', photoId)
-      .order('createdAt', { ascending: true })
+      .eq('photo_id', photoId)
+      .order('created_at', { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
 
     const comments = (data || []).map((item: any) => ({
       id: item.id.toString(),
-      user: item.memberName,
+      user: item.member_name,
       text: item.comment,
-      date: item.createdAt,
+      date: item.created_at,
       replies: []
     }))
 
@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from(TABLES.PHOTO_COMMENTS)
       .insert([{
-        photoId,
-        memberName,
+        photo_id: photoId,
+        member_name: memberName,
         comment: comment.trim()
       }])
       .select()
@@ -67,9 +67,9 @@ export async function POST(request: NextRequest) {
       success: true,
       comment: {
         id: data.id.toString(),
-        user: data.memberName,
+        user: data.member_name,
         text: data.comment,
-        date: data.createdAt,
+        date: data.created_at,
         replies: []
       }
     })

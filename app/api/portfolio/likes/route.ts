@@ -15,14 +15,14 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from(TABLES.PHOTO_LIKES)
-      .select('memberName')
-      .eq('photoId', photoId)
+      .select('member_name')
+      .eq('photo_id', photoId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const likes = (data || []).map((item: any) => item.memberName)
+    const likes = (data || []).map((item: any) => item.member_name)
     return NextResponse.json({ likes })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Database error' }, { status: 500 })
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     const { data: existing } = await supabase
       .from(TABLES.PHOTO_LIKES)
       .select('*')
-      .eq('photoId', photoId)
-      .eq('memberName', memberName)
+      .eq('photo_id', photoId)
+      .eq('member_name', memberName)
       .single()
 
     if (existing) {
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase
         .from(TABLES.PHOTO_LIKES)
         .delete()
-        .eq('photoId', photoId)
-        .eq('memberName', memberName)
+        .eq('photo_id', photoId)
+        .eq('member_name', memberName)
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase
         .from(TABLES.PHOTO_LIKES)
         .insert([{
-          photoId,
-          memberName
+          photo_id: photoId,
+          member_name: memberName
         }])
 
       if (error) {

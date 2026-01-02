@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const { data: photos, error: photosError } = await supabase
       .from(TABLES.PORTFOLIO_DATA)
       .select('*')
-      .eq('memberName', memberName)
+      .eq('member_name', memberName)
 
     if (photosError) {
       return NextResponse.json({ error: photosError.message }, { status: 500 })
@@ -26,22 +26,22 @@ export async function GET(request: NextRequest) {
     // Get portfolio order
     const { data: orderData, error: orderError } = await supabase
       .from(TABLES.PORTFOLIO_ORDER)
-      .select('photoOrder')
-      .eq('memberName', memberName)
+      .select('photo_order')
+      .eq('member_name', memberName)
       .single()
 
     // Get hidden photos
     const { data: hiddenPhotos, error: hiddenError } = await supabase
       .from(TABLES.HIDDEN_PHOTOS)
-      .select('photoSrc')
-      .eq('memberName', memberName)
+      .select('photo_src')
+      .eq('member_name', memberName)
 
-    const photoOrder = orderData?.photoOrder || []
-    const hiddenSrcs = (hiddenPhotos || []).map((h: any) => h.photoSrc)
+    const photoOrder = orderData?.photo_order || []
+    const hiddenSrcs = (hiddenPhotos || []).map((h: any) => h.photo_src)
 
     // Filter out hidden photos and sort by order
     const visiblePhotos = (photos || [])
-      .map((p: any) => p.photoData)
+      .map((p: any) => p.photo_data)
       .filter((photo: any) => !hiddenSrcs.includes(photo.src))
 
     const orderedPhotos = photoOrder
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from(TABLES.PORTFOLIO_DATA)
       .insert([{
-        memberName,
-        photoData: photo
+        member_name: memberName,
+        photo_data: photo
       }])
       .select()
       .single()
@@ -86,19 +86,19 @@ export async function POST(request: NextRequest) {
     // Update order
     const { data: orderData } = await supabase
       .from(TABLES.PORTFOLIO_ORDER)
-      .select('photoOrder')
-      .eq('memberName', memberName)
+      .select('photo_order')
+      .eq('member_name', memberName)
       .single()
 
-    const currentOrder = orderData?.photoOrder || []
+    const currentOrder = orderData?.photo_order || []
     currentOrder.push(photo.src)
 
     await supabase
       .from(TABLES.PORTFOLIO_ORDER)
       .upsert({
-        memberName,
-        photoOrder: currentOrder,
-        updatedAt: new Date().toISOString()
+        member_name: memberName,
+        photo_order: currentOrder,
+        updated_at: new Date().toISOString()
       })
 
     return NextResponse.json({ success: true, photo: data })
@@ -123,9 +123,9 @@ export async function PUT(request: NextRequest) {
       const { error } = await supabase
         .from(TABLES.PORTFOLIO_ORDER)
         .upsert({
-          memberName,
-          photoOrder,
-          updatedAt: new Date().toISOString()
+          member_name: memberName,
+          photo_order: photoOrder,
+          updated_at: new Date().toISOString()
         })
 
       if (error) {
@@ -139,8 +139,8 @@ export async function PUT(request: NextRequest) {
       const { error } = await supabase
         .from(TABLES.HIDDEN_PHOTOS)
         .insert([{
-          memberName,
-          photoSrc
+          member_name: memberName,
+          photo_src: photoSrc
         }])
 
       if (error) {
@@ -154,8 +154,8 @@ export async function PUT(request: NextRequest) {
       const { error } = await supabase
         .from(TABLES.HIDDEN_PHOTOS)
         .delete()
-        .eq('memberName', memberName)
-        .eq('photoSrc', photoSrc)
+        .eq('member_name', memberName)
+        .eq('photo_src', photoSrc)
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
@@ -187,8 +187,8 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from(TABLES.PORTFOLIO_DATA)
       .delete()
-      .eq('memberName', memberName)
-      .contains('photoData', { src: photoSrc })
+      .eq('member_name', memberName)
+      .contains('photo_data', { src: photoSrc })
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 })
@@ -198,8 +198,8 @@ export async function DELETE(request: NextRequest) {
     await supabase
       .from(TABLES.HIDDEN_PHOTOS)
       .insert([{
-        memberName,
-        photoSrc
+        member_name: memberName,
+        photo_src: photoSrc
       }])
 
     return NextResponse.json({ success: true })
