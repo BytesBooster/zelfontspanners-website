@@ -429,7 +429,6 @@ function PortfolioManageContent() {
         </div>
       </div>
     </section>
-    </>
   )
 }
 
