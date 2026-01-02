@@ -22,10 +22,15 @@ SELECT
 FROM portfolio_order
 UNION ALL
 SELECT 
-    'portfolio_photos' AS table_name,
+    'hidden_photos' AS table_name,
     COUNT(*) AS row_count
-FROM portfolio_photos
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolio_photos');
+FROM hidden_photos;
+
+-- Check portfolio_photos als die bestaat (voer handmatig uit als tabel bestaat)
+-- SELECT 
+--     'portfolio_photos' AS table_name,
+--     COUNT(*) AS row_count
+-- FROM portfolio_photos;
 
 -- Check portfolio_data structuur en data
 SELECT 
