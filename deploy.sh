@@ -69,9 +69,10 @@ pm2 stop zelfontspanners 2>/dev/null || true
 # Remove old build to force fresh build - AGGRESSIVE
 echo "🗑️  Removing old .next build completely..."
 rm -rf .next
-# Also remove specific old layout chunks that might contain modals
-find .next -name "layout-94f0854bcc52beb1.js" -delete 2>/dev/null || true
-find .next -name "*layout-94f0854bcc52beb1*" -delete 2>/dev/null || true
+# Also remove specific old layout chunks that might contain modals (before .next exists)
+echo "🗑️  Removing any remaining old layout chunks..."
+find . -name "*layout-94f0854bcc52beb1*" -type f -delete 2>/dev/null || true
+find . -name "*94f0854bcc52beb1*" -type f -delete 2>/dev/null || true
 
 # Install dependencies
 echo "📦 Installing dependencies..."
