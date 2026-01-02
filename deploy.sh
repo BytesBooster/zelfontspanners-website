@@ -46,14 +46,24 @@ echo "npm version: $($NPM_PATH --version)"
 # Installeer dependencies eerst (voor het geval er nieuwe zijn)
 echo ""
 echo "Installing dependencies..."
-$NPM_PATH install --production=false
+$NPM_PATH install --legacy-peer-deps
 
 if [ $? -ne 0 ]; then
-    echo ""
-    echo "=========================================="
-    echo "ERROR: npm install gefaald!"
-    echo "=========================================="
-    exit 1
+    echo "npm install met --legacy-peer-deps gefaald, probeer zonder..."
+    $NPM_PATH install
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "=========================================="
+        echo "ERROR: npm install gefaald!"
+        echo "=========================================="
+        exit 1
+    fi
+fi
+
+# Verifieer dat belangrijke dependencies geïnstalleerd zijn
+if [ ! -d "node_modules/@supabase/supabase-js" ]; then
+    echo "⚠ @supabase/supabase-js niet gevonden, probeer opnieuw te installeren..."
+    $NPM_PATH install @supabase/supabase-js --legacy-peer-deps || $NPM_PATH install @supabase/supabase-js
 fi
 
 # Check of package.json bestaat en build script aanwezig is

@@ -45,20 +45,42 @@ if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo ""
     
     echo "[3/5] Opnieuw installeren dependencies..."
-    $NPM_PATH install --production=false
+    $NPM_PATH install --legacy-peer-deps
     if [ $? -ne 0 ]; then
-        echo "✗ npm install gefaald!"
-        exit 1
+        echo "✗ npm install gefaald, probeer zonder legacy-peer-deps..."
+        $NPM_PATH install
+        if [ $? -ne 0 ]; then
+            echo "✗ npm install gefaald!"
+            exit 1
+        fi
     fi
+    
+    # Verifieer dat @supabase/supabase-js geïnstalleerd is
+    if [ ! -d "node_modules/@supabase/supabase-js" ]; then
+        echo "⚠ @supabase/supabase-js niet gevonden, probeer opnieuw te installeren..."
+        $NPM_PATH install @supabase/supabase-js --legacy-peer-deps
+    fi
+    
     echo "✓ Dependencies geïnstalleerd"
     echo ""
 else
     echo "[2/5] Dependencies bijwerken..."
-    $NPM_PATH install --production=false
+    $NPM_PATH install --legacy-peer-deps
     if [ $? -ne 0 ]; then
-        echo "✗ npm install gefaald!"
-        exit 1
+        echo "✗ npm install gefaald, probeer zonder legacy-peer-deps..."
+        $NPM_PATH install
+        if [ $? -ne 0 ]; then
+            echo "✗ npm install gefaald!"
+            exit 1
+        fi
     fi
+    
+    # Verifieer dat @supabase/supabase-js geïnstalleerd is
+    if [ ! -d "node_modules/@supabase/supabase-js" ]; then
+        echo "⚠ @supabase/supabase-js niet gevonden, probeer opnieuw te installeren..."
+        $NPM_PATH install @supabase/supabase-js --legacy-peer-deps
+    fi
+    
     echo "✓ Dependencies bijgewerkt"
     echo ""
 fi
