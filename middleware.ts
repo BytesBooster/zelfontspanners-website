@@ -18,9 +18,21 @@ export function middleware(request: NextRequest) {
   }
 
   // Blokkeer directe toegang tot oude HTML bestanden
-  if (pathname.endsWith('.html') && pathname !== '/index.html') {
+  if (pathname.endsWith('.html')) {
     // Redirect naar homepage als iemand oude HTML probeert te openen
     return NextResponse.redirect(new URL('/', request.url))
+  }
+  
+  // Blokkeer directe toegang tot oude JS bestanden die modals kunnen bevatten
+  const blockedJsFiles = [
+    '/auth.js',
+    '/login.js',
+    '/portfolio-manage.js',
+    '/components.js',
+    '/script.js'
+  ]
+  if (blockedJsFiles.includes(pathname)) {
+    return new NextResponse('File not found', { status: 404 })
   }
 
   return NextResponse.next()
