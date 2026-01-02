@@ -153,31 +153,68 @@ echo ""
 # CRITICAL: Copy static files to standalone build (Next.js doesn't do this automatically)
 echo "📁 Copying static files to standalone build..."
 if [ -d ".next/static" ]; then
+    echo "   Source: .next/static/"
+    echo "   Target: .next/standalone/.next/static/"
+    
+    # Remove old static files first
+    rm -rf .next/standalone/.next/static 2>/dev/null || true
+    
+    # Create directory structure
     mkdir -p .next/standalone/.next/static
-    cp -r .next/static/* .next/standalone/.next/static/ 2>/dev/null || {
-        echo "⚠️  Warning: Failed to copy some static files, but continuing..."
+    
+    # Copy with verbose output
+    echo "   Copying files..."
+    cp -rv .next/static/* .next/standalone/.next/static/ 2>&1 | head -20 || {
+        echo "⚠️  Warning: Some files failed to copy, but continuing..."
     }
-    echo "✅ Static files copied to standalone"
+    
+    # Verify copy was successful
+    if [ -d ".next/standalone/.next/static/chunks" ]; then
+        echo "✅ Static files copied successfully"
+        echo "   Found chunks directory"
+        ls -la .next/standalone/.next/static/chunks/ | head -5
+    else
+        echo "❌ ERROR: Static files not copied correctly!"
+        echo "   Checking source..."
+        ls -la .next/static/ | head -5
+        exit 1
+    fi
 else
-    echo "⚠️  Warning: .next/static directory not found!"
+    echo "❌ ERROR: .next/static directory not found!"
+    echo "   Build may have failed. Check build output above."
+    exit 1
 fi
 
 # Copy public folder to standalone
+echo "📁 Copying public folder to standalone..."
 if [ -d "public" ]; then
     mkdir -p .next/standalone/public
-    cp -r public/* .next/standalone/public/ 2>/dev/null || {
-        echo "⚠️  Warning: Failed to copy some public files, but continuing..."
+    cp -rv public/* .next/standalone/public/ 2>&1 | head -10 || {
+        echo "⚠️  Warning: Some public files failed to copy"
     }
     echo "✅ Public files copied to standalone"
+else
+    echo "⚠️  Warning: public directory not found"
 fi
 
 # Verify critical files exist
-echo "🔍 Verifying critical files..."
+echo ""
+echo "🔍 Verifying standalone build structure..."
 if [ ! -d ".next/standalone/.next/static" ]; then
     echo "❌ ERROR: Static files directory not found in standalone build!"
-    echo "Build may be incomplete. Check build logs above."
+    echo "   Build may be incomplete. Check build logs above."
     exit 1
 fi
+
+if [ ! -f ".next/standalone/server.js" ]; then
+    echo "❌ ERROR: server.js not found in standalone build!"
+    exit 1
+fi
+
+echo "✅ Standalone build structure verified"
+echo "   - server.js: ✅"
+echo "   - .next/static/: ✅"
+echo "   - public/: ✅"
 
 # Restart PM2
 echo "🔄 Restarting PM2..."
