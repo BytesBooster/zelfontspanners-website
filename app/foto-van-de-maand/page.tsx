@@ -5,7 +5,8 @@ import Image from 'next/image'
 import { useAuth, getCurrentUser } from '@/lib/auth'
 import {
   loadSubmissions,
-  saveSubmissions,
+  saveSubmission,
+  voteForSubmission,
   getCurrentMonthKey,
   getMonthName,
   getCurrentMonthExcursion,
@@ -34,29 +35,41 @@ export default function FotoVanDeMaandPage() {
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const monthKey = getCurrentMonthKey()
-    setCurrentMonthKey(monthKey)
-    
-    const loaded = loadSubmissions()
-    setSubmissions(loaded)
-    
-    const currentExcursion = getCurrentMonthExcursion()
-    setExcursion(currentExcursion)
+    const loadData = async () => {
+      const monthKey = getCurrentMonthKey()
+      setCurrentMonthKey(monthKey)
+      
+      const loaded = await loadSubmissions()
+      setSubmissions(loaded)
+      
+      const currentExcursion = await getCurrentMonthExcursion()
+      setExcursion(currentExcursion)
+    }
+    loadData()
   }, [])
 
   const monthData = submissions[currentMonthKey] || { submissions: [] }
   const userSubmissions = monthData.submissions.filter(sub => sub.photographer === currentUser)
-  const remaining = getRemainingUploadSlots(currentUser)
+  const [remaining, setRemaining] = useState(5)
+
+  useEffect(() => {
+    const checkRemaining = async () => {
+      const slots = await getRemainingUploadSlots(currentUser)
+      setRemaining(slots)
+    }
+    checkRemaining()
+  }, [currentUser, submissions])
 
   // Find winner (most votes)
   const winner = monthData.submissions.length > 0
     ? [...monthData.submissions].sort((a, b) => (b.votes || []).length - (a.votes || []).length)[0]
     : null
 
-  const handleFileSelect = (files: FileList | null) => {
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     
-    if (!canUserUpload(currentUser)) {
+    const canUpload = await canUserUpload(currentUser)
+    if (!canUpload) {
       alert('Je hebt het maximum van 5 foto\'s bereikt voor deze maand.')
       return
     }
@@ -93,9 +106,10 @@ export default function FotoVanDeMaandPage() {
     handleFileSelect(e.dataTransfer.files)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = async (e: React.DragEvent) => {
     e.preventDefault()
-    if (canUserUpload(currentUser) && dropZoneRef.current) {
+    const canUpload = await canUserUpload(currentUser)
+    if (canUpload && dropZoneRef.current) {
       dropZoneRef.current.classList.add('drag-over')
     }
   }
@@ -109,10 +123,8 @@ export default function FotoVanDeMaandPage() {
   const handleUpload = async () => {
     if (pendingFiles.length === 0 || !currentUser) return
 
-    const updatedSubmissions = { ...submissions }
-    const monthData = updatedSubmissions[currentMonthKey] || { submissions: [] }
-    
     const uploadedCount = pendingFiles.length
+    let successCount = 0
 
     for (const file of pendingFiles) {
       const base64 = await new Promise<string>((resolve) => {
@@ -127,60 +139,53 @@ export default function FotoVanDeMaandPage() {
       })
 
       const photoTitle = uploadTitle.trim() || file.name.replace(/\.[^/.]+$/, '')
-      const currentExcursion = getCurrentMonthExcursion()
+      const currentExcursion = await getCurrentMonthExcursion()
 
-      const submission: FotoSubmission = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        photographer: currentUser,
-        title: photoTitle,
-        imageSrc: base64,
-        votes: [],
-        uploadDate: new Date().toISOString(),
-        excursionId: currentExcursion ? currentExcursion.id : null,
-        excursionTitle: currentExcursion ? currentExcursion.title : null,
-        excursionLocation: currentExcursion ? currentExcursion.location : null,
-        excursionDate: currentExcursion ? currentExcursion.date : null
+      try {
+        const submission = await saveSubmission({
+          photographer: currentUser,
+          title: photoTitle,
+          imageSrc: base64,
+          votes: [],
+          excursionId: currentExcursion ? currentExcursion.id : null,
+          excursionTitle: currentExcursion ? currentExcursion.title : null,
+          excursionLocation: currentExcursion ? currentExcursion.location : null,
+          excursionDate: currentExcursion ? currentExcursion.date : null
+        })
+        
+        if (submission) {
+          successCount++
+        }
+      } catch (error: any) {
+        alert(`Fout bij uploaden van ${file.name}: ${error.message}`)
       }
-
-      monthData.submissions.push(submission)
     }
 
-    updatedSubmissions[currentMonthKey] = monthData
-    saveSubmissions(updatedSubmissions)
-    setSubmissions(updatedSubmissions)
+    // Reload submissions
+    const loaded = await loadSubmissions()
+    setSubmissions(loaded)
 
     setPendingFiles([])
     setShowUploadPreview(false)
     setUploadTitle('')
     if (fileInputRef.current) fileInputRef.current.value = ''
 
-    alert(`${uploadedCount} foto${uploadedCount === 1 ? '' : '\'s'} ingezonden!`)
+    alert(`${successCount} foto${successCount === 1 ? '' : '\'s'} ingezonden!`)
   }
 
-  const handleVote = (fotoId: string) => {
+  const handleVote = async (fotoId: string) => {
     if (!currentUser) {
       alert('Je moet ingelogd zijn om te stemmen.')
       return
     }
 
-    const updatedSubmissions = { ...submissions }
-    const monthData = updatedSubmissions[currentMonthKey] || { submissions: [] }
+    const success = await voteForSubmission(fotoId, currentUser)
     
-    const submission = monthData.submissions.find(s => s.id === fotoId)
-    if (!submission) return
-
-    const votes = submission.votes || []
-    const hasVoted = votes.includes(currentUser)
-
-    if (hasVoted) {
-      submission.votes = votes.filter(v => v !== currentUser)
-    } else {
-      submission.votes = [...votes, currentUser]
+    if (success) {
+      // Reload submissions
+      const loaded = await loadSubmissions()
+      setSubmissions(loaded)
     }
-
-    updatedSubmissions[currentMonthKey] = monthData
-    saveSubmissions(updatedSubmissions)
-    setSubmissions(updatedSubmissions)
   }
 
   const openModal = (submission: FotoSubmission) => {

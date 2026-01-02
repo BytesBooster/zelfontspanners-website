@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 // Image component not needed here - using regular img tags
 import Link from 'next/link'
-import { useAuth, canAccessPortfolio } from '@/lib/auth'
+import { useAuth, canAccessPortfolio, requiresPasswordChange, changePassword } from '@/lib/auth'
+import { loadPortfolioData, addPortfolioPhoto, deletePortfolioPhoto, updatePortfolioOrder, PortfolioPhoto } from '@/lib/portfolio'
 
 function PortfolioManageContent() {
   const searchParams = useSearchParams()
@@ -19,57 +20,46 @@ function PortfolioManageContent() {
   const [uploadTitle, setUploadTitle] = useState('')
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false)
+  const [passwordChangeForm, setPasswordChangeForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [passwordChangeMessage, setPasswordChangeMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!isLoggedIn || !currentUser) {
-      return
+    const check = async () => {
+      if (!isLoggedIn || !currentUser) {
+        return
+      }
+
+      // Check if password change is required
+      const needsChange = await requiresPasswordChange(currentUser)
+      if (needsChange) {
+        // Show modal instead of redirecting
+        setShowPasswordChangeModal(true)
+        return
+      }
+
+      // Check if user can access this portfolio
+      if (memberParam && !canAccessPortfolio(memberParam)) {
+        return
+      }
+
+      const memberName = memberParam || currentUser
+      loadPhotos(memberName)
     }
+    check()
+  }, [isLoggedIn, currentUser, memberParam, router])
 
-    // Check if user can access this portfolio
-    if (memberParam && !canAccessPortfolio(memberParam)) {
-      return
-    }
-
-    const memberName = memberParam || currentUser
-    loadPhotos(memberName)
-  }, [isLoggedIn, currentUser, memberParam])
-
-  const loadPhotos = (memberName: string) => {
+  const loadPhotos = async (memberName: string) => {
     setLoading(true)
     try {
-      // Use loadPortfolioData from portfolio-data.js
-      let portfolioData = null
-      
-      if (typeof window !== 'undefined' && (window as any).loadPortfolioData) {
-        portfolioData = (window as any).loadPortfolioData(memberName)
-      }
-      
-      // Fallback to localStorage
-      if (!portfolioData) {
-        const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
-        const orderData = JSON.parse(localStorage.getItem('portfolioOrder') || '{}')
-        const hiddenPhotos = JSON.parse(localStorage.getItem('hiddenPortfolioPhotos') || '{}')
-        
-        const memberData = userData[memberName] || []
-        const memberOrder = orderData[memberName] || []
-        const hiddenForMember = hiddenPhotos[memberName] || []
-        
-        const visiblePhotos = memberData.filter((photo: any) => {
-          return !hiddenForMember.some((hiddenSrc: string) => photo.src === hiddenSrc)
-        })
-        
-        const orderedPhotos = memberOrder
-          .map((src: string) => visiblePhotos.find((p: any) => p.src === src))
-          .filter(Boolean)
-          .concat(visiblePhotos.filter((p: any) => !memberOrder.includes(p.src)))
-        
-        portfolioData = {
-          name: memberName,
-          photos: orderedPhotos
-        }
-      }
+      const portfolioData = await loadPortfolioData(memberName)
       
       if (portfolioData && portfolioData.photos) {
         setPhotos(portfolioData.photos)
@@ -112,65 +102,55 @@ function PortfolioManageContent() {
     if (pendingFiles.length === 0 || !currentUser) return
 
     const memberName = memberParam || currentUser
-    const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
-    const orderData = JSON.parse(localStorage.getItem('portfolioOrder') || '{}')
-    
-    if (!userData[memberName]) {
-      userData[memberName] = []
-    }
-    if (!orderData[memberName]) {
-      orderData[memberName] = []
-    }
-
-    const newPhotos: any[] = []
+    const newPhotos: PortfolioPhoto[] = []
 
     for (const file of pendingFiles) {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const result = e.target?.result as string
-              // Compress image
-              const img = document.createElement('img')
-              img.onload = () => {
-                const canvas = document.createElement('canvas')
-                let width = img.width
-                let height = img.height
-                if (width > 1920) {
-                  height = (height * 1920) / width
-                  width = 1920
-                }
-                canvas.width = width
-                canvas.height = height
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                  ctx.drawImage(img, 0, 0, width, height)
-                  resolve(canvas.toDataURL('image/jpeg', 0.8))
-                } else {
-                  resolve(result)
-                }
-              }
-              img.src = result
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          // Compress image
+          const img = document.createElement('img')
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            let width = img.width
+            let height = img.height
+            if (width > 1920) {
+              height = (height * 1920) / width
+              width = 1920
             }
-            reader.readAsDataURL(file)
-          })
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height)
+              resolve(canvas.toDataURL('image/jpeg', 0.8))
+            } else {
+              resolve(result)
+            }
+          }
+          img.src = result
+        }
+        reader.readAsDataURL(file)
+      })
 
       const photoTitle = uploadTitle.trim() || file.name.replace(/\.[^/.]+$/, '')
-      const newPhoto = {
+      const newPhoto: PortfolioPhoto = {
         src: base64,
         title: photoTitle,
         category: 'all',
         isUserUploaded: true
       }
 
-      newPhotos.push(newPhoto)
-      userData[memberName].push(newPhoto)
-      orderData[memberName].push(base64)
+      const success = await addPortfolioPhoto(memberName, newPhoto)
+      if (success) {
+        newPhotos.push(newPhoto)
+      }
     }
 
-    localStorage.setItem('portfolioData', JSON.stringify(userData))
-    localStorage.setItem('portfolioOrder', JSON.stringify(orderData))
-
-    setPhotos(prev => [...prev, ...newPhotos])
+    // Reload photos
+    await loadPhotos(memberName)
+    
     setPendingFiles([])
     setShowUploadPreview(false)
     setUploadTitle('')
@@ -179,24 +159,16 @@ function PortfolioManageContent() {
     alert(`${newPhotos.length} foto${newPhotos.length === 1 ? '' : '\'s'} toegevoegd!`)
   }
 
-  const handleDelete = (photoSrc: string) => {
+  const handleDelete = async (photoSrc: string) => {
     if (!confirm('Weet je zeker dat je deze foto wilt verwijderen?')) return
 
     const memberName = memberParam || currentUser
-    const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
-    const orderData = JSON.parse(localStorage.getItem('portfolioOrder') || '{}')
+    const success = await deletePortfolioPhoto(memberName, photoSrc)
     
-    if (userData[memberName]) {
-      userData[memberName] = userData[memberName].filter((p: any) => p.src !== photoSrc)
+    if (success) {
+      // Reload photos
+      await loadPhotos(memberName)
     }
-    if (orderData[memberName]) {
-      orderData[memberName] = orderData[memberName].filter((src: string) => src !== photoSrc)
-    }
-
-    localStorage.setItem('portfolioData', JSON.stringify(userData))
-    localStorage.setItem('portfolioOrder', JSON.stringify(orderData))
-
-    setPhotos(prev => prev.filter(p => p.src !== photoSrc))
   }
 
   const handleEditTitle = (photoSrc: string, currentTitle: string) => {
@@ -204,21 +176,60 @@ function PortfolioManageContent() {
     setEditTitle(currentTitle)
   }
 
-  const saveTitle = (photoSrc: string) => {
+  const saveTitle = async (photoSrc: string) => {
     const memberName = memberParam || currentUser
-    const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
     
-    if (userData[memberName]) {
-      const photo = userData[memberName].find((p: any) => p.src === photoSrc)
-      if (photo) {
-        photo.title = editTitle.trim() || photo.title
-        localStorage.setItem('portfolioData', JSON.stringify(userData))
-        setPhotos(prev => prev.map(p => p.src === photoSrc ? { ...p, title: photo.title } : p))
-      }
-    }
-
+    // Update photo title locally
+    setPhotos(prev => prev.map(p => p.src === photoSrc ? { ...p, title: editTitle.trim() || p.title } : p))
+    
+    // TODO: Add API endpoint for updating photo title
+    // For now, we'll just update locally
+    
     setEditingPhoto(null)
     setEditTitle('')
+  }
+
+  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordChangeMessage(null)
+
+    if (!passwordChangeForm.currentPassword || !passwordChangeForm.newPassword || !passwordChangeForm.confirmPassword) {
+      setPasswordChangeMessage({ text: 'Vul alle velden in', type: 'error' })
+      return
+    }
+
+    if (passwordChangeForm.newPassword !== passwordChangeForm.confirmPassword) {
+      setPasswordChangeMessage({ text: 'De nieuwe wachtwoorden komen niet overeen', type: 'error' })
+      return
+    }
+
+    if (passwordChangeForm.newPassword.length < 6) {
+      setPasswordChangeMessage({ text: 'Nieuw wachtwoord moet minimaal 6 tekens lang zijn', type: 'error' })
+      return
+    }
+
+    if (!currentUser) {
+      setPasswordChangeMessage({ text: 'Geen gebruiker gevonden', type: 'error' })
+      return
+    }
+
+    setPasswordChangeLoading(true)
+    const result = await changePassword(currentUser, passwordChangeForm.currentPassword, passwordChangeForm.newPassword)
+
+    if (result.success) {
+      setPasswordChangeMessage({ text: 'Wachtwoord succesvol gewijzigd!', type: 'success' })
+      // Check if password change is still required
+      const stillRequired = await requiresPasswordChange(currentUser)
+      if (!stillRequired) {
+        // Password changed successfully, close modal
+        setShowPasswordChangeModal(false)
+        // Reload page to refresh state
+        window.location.reload()
+      }
+    } else {
+      setPasswordChangeMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
+    }
+    setPasswordChangeLoading(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -256,6 +267,8 @@ function PortfolioManageContent() {
     )
   }
 
+  // Password check happens in useEffect (async)
+
   const memberName = memberParam || currentUser
   if (memberParam && !canAccessPortfolio(memberParam)) {
     return (
@@ -272,8 +285,73 @@ function PortfolioManageContent() {
   }
 
   return (
-    <section className="portfolio-manage-page">
-      <div className="container">
+    <>
+      {/* Password Change Modal - Cannot be closed until password is changed */}
+      {showPasswordChangeModal && (
+        <div className="password-change-modal" style={{ display: 'flex' }}>
+          <div className="password-change-modal-content">
+            <h2>⚠️ Wachtwoord Wijzigen Verplicht</h2>
+            <p>Je wachtwoord is gereset door een administrator. Je moet je wachtwoord wijzigen voordat je verder kunt gaan.</p>
+            <p style={{ color: '#d4af37', fontWeight: '500' }}>Dit venster kan niet worden gesloten totdat je wachtwoord is gewijzigd.</p>
+            
+            {passwordChangeMessage && (
+              <div className={`form-message ${passwordChangeMessage.type}`} style={{ display: 'block', marginTop: '1rem' }}>
+                {passwordChangeMessage.text}
+              </div>
+            )}
+
+            <form className="login-form" onSubmit={handlePasswordChangeSubmit} style={{ marginTop: '2rem' }}>
+              <div className="form-group">
+                <label htmlFor="modalCurrentPassword">Huidig Wachtwoord</label>
+                <input
+                  type="password"
+                  id="modalCurrentPassword"
+                  required
+                  placeholder="Voer je huidige wachtwoord in"
+                  value={passwordChangeForm.currentPassword}
+                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  disabled={passwordChangeLoading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="modalNewPassword">Nieuw Wachtwoord</label>
+                <input
+                  type="password"
+                  id="modalNewPassword"
+                  required
+                  placeholder="Minimaal 6 tekens"
+                  value={passwordChangeForm.newPassword}
+                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  disabled={passwordChangeLoading}
+                  minLength={6}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="modalConfirmPassword">Bevestig Nieuw Wachtwoord</label>
+                <input
+                  type="password"
+                  id="modalConfirmPassword"
+                  required
+                  placeholder="Bevestig je nieuwe wachtwoord"
+                  value={passwordChangeForm.confirmPassword}
+                  onChange={(e) => setPasswordChangeForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  disabled={passwordChangeLoading}
+                  minLength={6}
+                />
+              </div>
+              
+              <button type="submit" className="btn btn-primary" disabled={passwordChangeLoading} style={{ width: '100%', marginTop: '1rem' }}>
+                {passwordChangeLoading ? 'Wijzigen...' : 'Wachtwoord Wijzigen'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <section className="portfolio-manage-page">
+        <div className="container">
         <div className="section-header">
           <h1>Portfolio Beheer</h1>
           <p className="section-subtitle">Beheer je portfolio foto's - {memberName}</p>
@@ -424,6 +502,7 @@ function PortfolioManageContent() {
         </div>
       </div>
     </section>
+    </>
   )
 }
 

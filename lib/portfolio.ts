@@ -1,8 +1,5 @@
 'use client'
 
-// This will load the portfolio data from the existing portfolio-data.js
-// For now, we'll create a wrapper that can use the existing JS functions
-
 export interface PortfolioPhoto {
   src: string
   title: string
@@ -13,52 +10,6 @@ export interface PortfolioPhoto {
 export interface PortfolioData {
   name: string
   photos: PortfolioPhoto[]
-}
-
-declare global {
-  interface Window {
-    loadPortfolioData?: (memberName: string) => PortfolioData | null
-    STATIC_PORTFOLIO_DATA?: Record<string, PortfolioData>
-  }
-}
-
-export function loadPortfolioData(memberName: string): PortfolioData | null {
-  if (typeof window === 'undefined') return null
-  
-  // Try to use existing function if available
-  if (window.loadPortfolioData) {
-    return window.loadPortfolioData(memberName)
-  }
-  
-  // Fallback: load from localStorage userData
-  try {
-    const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
-    const orderData = JSON.parse(localStorage.getItem('portfolioOrder') || '{}')
-    const hiddenPhotos = JSON.parse(localStorage.getItem('hiddenPortfolioPhotos') || '{}')
-    
-    const memberData = userData[memberName] || []
-    const memberOrder = orderData[memberName] || []
-    const hiddenForMember = hiddenPhotos[memberName] || []
-    
-    // Filter out hidden photos
-    const visiblePhotos = memberData.filter((photo: PortfolioPhoto) => {
-      return !hiddenForMember.some((hiddenSrc: string) => photo.src === hiddenSrc)
-    })
-    
-    // Sort by order
-    const orderedPhotos = memberOrder
-      .map((src: string) => visiblePhotos.find((p: PortfolioPhoto) => p.src === src))
-      .filter(Boolean)
-      .concat(visiblePhotos.filter((p: PortfolioPhoto) => !memberOrder.includes(p.src)))
-    
-    return {
-      name: memberName,
-      photos: orderedPhotos
-    }
-  } catch (e) {
-    console.error('Error loading portfolio data:', e)
-    return null
-  }
 }
 
 export function getPhotoId(photoSrc: string): string {
@@ -90,40 +41,153 @@ export function getPhotoId(photoSrc: string): string {
   return normalizedSrc.replace(/[^a-zA-Z0-9\/]/g, '_').replace(/\//g, '_')
 }
 
-export function getPhotoLikes(photoId: string): string[] {
-  if (typeof window === 'undefined') return []
-  const likesData = JSON.parse(localStorage.getItem('photoLikes') || '{}')
-  return likesData[photoId] || []
+// Load portfolio data from API
+export async function loadPortfolioData(memberName: string): Promise<PortfolioData | null> {
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const response = await fetch(`/api/portfolio?memberName=${encodeURIComponent(memberName)}`)
+    if (!response.ok) {
+      console.error('Error loading portfolio:', response.statusText)
+      return null
+    }
+    
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error loading portfolio data:', error)
+    return null
+  }
 }
 
-export function getPhotoComments(photoId: string): any[] {
+// Get photo likes from API
+export async function getPhotoLikes(photoId: string): Promise<string[]> {
   if (typeof window === 'undefined') return []
-  const commentsData = JSON.parse(localStorage.getItem('photoComments') || '{}')
-  return commentsData[photoId] || []
+  
+  try {
+    const response = await fetch(`/api/portfolio/likes?photoId=${encodeURIComponent(photoId)}`)
+    if (!response.ok) {
+      return []
+    }
+    
+    const data = await response.json()
+    return data.likes || []
+  } catch (error) {
+    console.error('Error loading likes:', error)
+    return []
+  }
 }
 
-export function isPhotoLikedByUser(photoId: string, currentUser: string | null): boolean {
+// Get photo comments from API
+export async function getPhotoComments(photoId: string): Promise<any[]> {
+  if (typeof window === 'undefined') return []
+  
+  try {
+    const response = await fetch(`/api/portfolio/comments?photoId=${encodeURIComponent(photoId)}`)
+    if (!response.ok) {
+      return []
+    }
+    
+    const data = await response.json()
+    return data.comments || []
+  } catch (error) {
+    console.error('Error loading comments:', error)
+    return []
+  }
+}
+
+// Check if photo is liked by user
+export async function isPhotoLikedByUser(photoId: string, currentUser: string | null): Promise<boolean> {
   if (!currentUser) return false
-  const likes = getPhotoLikes(photoId)
+  const likes = await getPhotoLikes(photoId)
   return likes.includes(currentUser)
 }
 
-export function toggleLike(photoId: string, currentUser: string | null): void {
+// Toggle like via API
+export async function toggleLike(photoId: string, currentUser: string | null): Promise<void> {
   if (!currentUser || typeof window === 'undefined') return
   
-  const likesData = JSON.parse(localStorage.getItem('photoLikes') || '{}')
-  if (!likesData[photoId]) {
-    likesData[photoId] = []
+  try {
+    const response = await fetch('/api/portfolio/likes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoId, memberName: currentUser })
+    })
+
+    if (!response.ok) {
+      console.error('Error toggling like:', response.statusText)
+    }
+  } catch (error) {
+    console.error('Error toggling like:', error)
   }
+}
+
+// Add portfolio photo via API
+export async function addPortfolioPhoto(memberName: string, photo: PortfolioPhoto): Promise<boolean> {
+  if (typeof window === 'undefined') return false
   
-  const likes = likesData[photoId]
-  const index = likes.indexOf(currentUser)
-  
-  if (index > -1) {
-    likes.splice(index, 1)
-  } else {
-    likes.push(currentUser)
+  try {
+    const response = await fetch('/api/portfolio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberName, photo })
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error adding portfolio photo:', error)
+    return false
   }
+}
+
+// Delete portfolio photo via API
+export async function deletePortfolioPhoto(memberName: string, photoSrc: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false
   
-  localStorage.setItem('photoLikes', JSON.stringify(likesData))
+  try {
+    const response = await fetch(`/api/portfolio?memberName=${encodeURIComponent(memberName)}&photoSrc=${encodeURIComponent(photoSrc)}`, {
+      method: 'DELETE'
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error deleting portfolio photo:', error)
+    return false
+  }
+}
+
+// Update portfolio order via API
+export async function updatePortfolioOrder(memberName: string, photoOrder: string[]): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  
+  try {
+    const response = await fetch('/api/portfolio', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberName, action: 'updateOrder', photoOrder })
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error updating portfolio order:', error)
+    return false
+  }
+}
+
+// Add comment via API
+export async function addComment(photoId: string, memberName: string, comment: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  
+  try {
+    const response = await fetch('/api/portfolio/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoId, memberName, comment })
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error adding comment:', error)
+    return false
+  }
 }

@@ -1,0 +1,33 @@
+# WinSCP Upload Script
+# Dit script uploadt de code naar de server via SFTP
+
+# Server instellingen
+open sftp://root@185.255.131.147 -hostkey="*"
+
+# Wachtwoord prompt (of gebruik keyfile)
+# password
+
+# Ga naar project directory
+cd /var/www/vhosts/zelfontspanners.nl/nodejs
+
+# Upload alle bestanden (behalve node_modules en .next)
+put -delete -preservetime -nopermissions -nopreservedate "app" "app"
+put -delete -preservetime -nopermissions -nopreservedate "components" "components"
+put -delete -preservetime -nopermissions -nopreservedate "lib" "lib"
+put -delete -preservetime -nopermissions -nopreservedate "public" "public"
+put -delete -preservetime -nopermissions -nopreservedate "database" "database"
+put -preservetime -nopermissions -nopreservedate "package.json" "package.json"
+put -preservetime -nopermissions -nopreservedate "package-lock.json" "package-lock.json"
+put -preservetime -nopermissions -nopreservedate "next.config.js" "next.config.js"
+put -preservetime -nopermissions -nopreservedate "tsconfig.json" "tsconfig.json"
+put -preservetime -nopermissions -nopreservedate "ecosystem.config.js" "ecosystem.config.js"
+put -preservetime -nopermissions -nopreservedate "deploy.sh" "deploy.sh"
+
+# Maak deploy.sh executable
+chmod 755 deploy.sh
+
+# Sluit verbinding
+close
+
+exit
+

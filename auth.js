@@ -64,10 +64,8 @@ function initializeAccounts() {
                 memberName: member,
                 createdAt: new Date().toISOString()
             };
-        } else {
-            // Update existing accounts to use "test123" password
-            accounts[member].password = 'test123';
         }
+        // Don't overwrite existing passwords - preserve user-changed passwords
     });
     
     localStorage.setItem('memberAccounts', JSON.stringify(accounts));
@@ -139,19 +137,19 @@ function canAccessPortfolio(portfolioMemberName) {
 
 // Initialize accounts on load
 if (typeof window !== 'undefined') {
-    // Force reset all passwords to "test123" on first load
+    // Only create accounts that don't exist - don't overwrite existing passwords
     const accounts = JSON.parse(localStorage.getItem('memberAccounts') || '{}');
     const members = getAllMembers();
-    let needsReset = false;
+    let needsInit = false;
     
     members.forEach(member => {
-        if (!accounts[member] || accounts[member].password !== 'test123') {
-            needsReset = true;
+        if (!accounts[member]) {
+            needsInit = true;
         }
     });
     
-    if (needsReset) {
-        // Reset all passwords to "test123"
+    if (needsInit) {
+        // Only create accounts that don't exist
         members.forEach(member => {
             if (!accounts[member]) {
                 accounts[member] = {
@@ -159,9 +157,8 @@ if (typeof window !== 'undefined') {
                     memberName: member,
                     createdAt: new Date().toISOString()
                 };
-            } else {
-                accounts[member].password = 'test123';
             }
+            // Don't overwrite existing passwords
         });
         localStorage.setItem('memberAccounts', JSON.stringify(accounts));
     }

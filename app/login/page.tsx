@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth, login, initializeAccounts } from '@/lib/auth'
+import { useAuth, login, initializeAccounts, requiresPasswordChange } from '@/lib/auth'
 import { getAllMembers } from '@/lib/members'
 
 export default function LoginPage() {
@@ -16,17 +16,25 @@ export default function LoginPage() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
-    initializeAccounts()
-    const allMembers = getAllMembers()
-    const sorted = [...allMembers].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }))
-    setMembers(sorted)
-    
-    if (isLoggedIn && currentUser) {
-      router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
+    const init = async () => {
+      await initializeAccounts()
+      const allMembers = getAllMembers()
+      const sorted = [...allMembers].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }))
+      setMembers(sorted)
+      
+      if (isLoggedIn && currentUser) {
+        const needsChange = await requiresPasswordChange(currentUser)
+        if (needsChange) {
+          router.push('/change-password')
+        } else {
+          router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
+        }
+      }
     }
+    init()
   }, [isLoggedIn, currentUser, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!formData.memberName || !formData.password) {
@@ -35,13 +43,20 @@ export default function LoginPage() {
       return
     }
 
-    const result = login(formData.memberName, formData.password)
+    const result = await login(formData.memberName, formData.password)
 
     if (result.success) {
-      setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
-      setTimeout(() => {
-        router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
-      }, 1000)
+      if (result.requiresPasswordChange) {
+        setMessage({ text: 'Je moet je wachtwoord wijzigen voordat je verder kunt gaan.', type: 'error' })
+        setTimeout(() => {
+          router.push('/change-password')
+        }, 1500)
+      } else {
+        setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
+        setTimeout(() => {
+          router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
+        }, 1000)
+      }
     } else {
       setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
       setTimeout(() => setMessage(null), 5000)

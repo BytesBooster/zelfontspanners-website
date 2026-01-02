@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth, getCurrentUser } from '@/lib/auth'
-import { loadPortfolioData, getPhotoId, getPhotoLikes, getPhotoComments, isPhotoLikedByUser, toggleLike, PortfolioPhoto } from '@/lib/portfolio'
+import { loadPortfolioData, getPhotoId, getPhotoLikes, getPhotoComments, isPhotoLikedByUser, toggleLike, PortfolioPhoto, addComment } from '@/lib/portfolio'
 
 function PortfolioContent() {
   const searchParams = useSearchParams()
@@ -20,6 +20,7 @@ function PortfolioContent() {
   const [comments, setComments] = useState<Record<string, any[]>>({})
   const [commentText, setCommentText] = useState('')
   const [showComments, setShowComments] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
 
   useEffect(() => {
     if (!memberName) {
@@ -27,53 +28,23 @@ function PortfolioContent() {
       return
     }
 
-    // Load portfolio data using loadPortfolioData from portfolio-data.js
-    const loadData = () => {
+    // Load portfolio data from API
+    const loadData = async () => {
       try {
-        // Try to use loadPortfolioData function from portfolio-data.js
-        let portfolioData = null
-        
-        if (typeof window !== 'undefined' && (window as any).loadPortfolioData) {
-          portfolioData = (window as any).loadPortfolioData(memberName)
-        }
-        
-        // Fallback to localStorage if function not available
-        if (!portfolioData) {
-          const userData = JSON.parse(localStorage.getItem('portfolioData') || '{}')
-          const orderData = JSON.parse(localStorage.getItem('portfolioOrder') || '{}')
-          const hiddenPhotos = JSON.parse(localStorage.getItem('hiddenPortfolioPhotos') || '{}')
-          
-          const memberData = userData[memberName] || []
-          const memberOrder = orderData[memberName] || []
-          const hiddenForMember = hiddenPhotos[memberName] || []
-          
-          const visiblePhotos = memberData.filter((photo: PortfolioPhoto) => {
-            return !hiddenForMember.some((hiddenSrc: string) => photo.src === hiddenSrc)
-          })
-          
-          const orderedPhotos = memberOrder
-            .map((src: string) => visiblePhotos.find((p: PortfolioPhoto) => p.src === src))
-            .filter(Boolean)
-            .concat(visiblePhotos.filter((p: PortfolioPhoto) => !memberOrder.includes(p.src)))
-          
-          portfolioData = {
-            name: memberName,
-            photos: orderedPhotos
-          }
-        }
+        const portfolioData = await loadPortfolioData(memberName)
         
         if (portfolioData && portfolioData.photos) {
           setPhotos(portfolioData.photos)
           
-          // Load likes and comments
+          // Load likes and comments for all photos
           const likesData: Record<string, string[]> = {}
           const commentsData: Record<string, any[]> = {}
           
-          portfolioData.photos.forEach((photo: PortfolioPhoto) => {
+          for (const photo of portfolioData.photos) {
             const photoId = getPhotoId(photo.src)
-            likesData[photoId] = getPhotoLikes(photoId)
-            commentsData[photoId] = getPhotoComments(photoId)
-          })
+            likesData[photoId] = await getPhotoLikes(photoId)
+            commentsData[photoId] = await getPhotoComments(photoId)
+          }
           
           setLikes(likesData)
           setComments(commentsData)
@@ -83,22 +54,7 @@ function PortfolioContent() {
       }
     }
     
-    // Wait a bit for portfolio-data.js to load
-    const timer = setTimeout(() => {
-      loadData()
-    }, 100)
-    
     loadData()
-    
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      loadData()
-    }
-    window.addEventListener('storage', handleStorageChange)
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener('storage', handleStorageChange)
-    }
   }, [memberName, router])
 
   const openModal = (index: number) => {
@@ -122,7 +78,7 @@ function PortfolioContent() {
     setShowComments(false)
   }
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!isLoggedIn || !currentUser) {
       alert('Je moet ingelogd zijn om foto\'s te liken.')
       return
@@ -132,51 +88,53 @@ function PortfolioContent() {
     if (!currentPhoto) return
 
     const photoId = getPhotoId(currentPhoto.src)
-    toggleLike(photoId, currentUser)
+    await toggleLike(photoId, currentUser)
     
-    // Update local state
+    // Reload likes and update isLiked
     const updatedLikes = { ...likes }
-    updatedLikes[photoId] = getPhotoLikes(photoId)
+    updatedLikes[photoId] = await getPhotoLikes(photoId)
     setLikes(updatedLikes)
+    
+    // Update isLiked state
+    const liked = await isPhotoLikedByUser(photoId, currentUser)
+    setIsLiked(liked)
   }
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!isLoggedIn || !currentUser || !commentText.trim()) return
 
     const currentPhoto = photos[currentIndex]
     if (!currentPhoto) return
 
     const photoId = getPhotoId(currentPhoto.src)
-    const commentsData = JSON.parse(localStorage.getItem('photoComments') || '{}')
-    
-    if (!commentsData[photoId]) {
-      commentsData[photoId] = []
+    const success = await addComment(photoId, currentUser, commentText.trim())
+
+    if (success) {
+      setCommentText('')
+      
+      // Reload comments
+      const updatedComments = { ...comments }
+      updatedComments[photoId] = await getPhotoComments(photoId)
+      setComments(updatedComments)
     }
-
-    const comment = {
-      id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      user: currentUser,
-      text: commentText.trim(),
-      date: new Date().toISOString(),
-      replies: []
-    }
-
-    commentsData[photoId].push(comment)
-    localStorage.setItem('photoComments', JSON.stringify(commentsData))
-
-    setCommentText('')
-    
-    // Update local state
-    const updatedComments = { ...comments }
-    updatedComments[photoId] = getPhotoComments(photoId)
-    setComments(updatedComments)
   }
 
   const currentPhoto = photos[currentIndex]
   const currentPhotoId = currentPhoto ? getPhotoId(currentPhoto.src) : ''
   const currentLikes = likes[currentPhotoId] || []
   const currentComments = comments[currentPhotoId] || []
-  const isLiked = currentPhoto ? isPhotoLikedByUser(currentPhotoId, currentUser) : false
+
+  useEffect(() => {
+    const checkLiked = async () => {
+      if (currentPhoto && currentPhotoId) {
+        const liked = await isPhotoLikedByUser(currentPhotoId, currentUser)
+        setIsLiked(liked)
+      } else {
+        setIsLiked(false)
+      }
+    }
+    checkLiked()
+  }, [currentPhotoId, currentUser, currentPhoto])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)

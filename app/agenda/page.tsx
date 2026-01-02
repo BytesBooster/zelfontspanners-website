@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
-import { loadEvents, saveEvents, formatDateTime, formatDate, isPastEvent, escapeHtml, Event } from '@/lib/agenda'
+import { loadEvents, createEvent, deleteEvent, formatDateTime, formatDate, isPastEvent, escapeHtml, Event } from '@/lib/agenda'
 import Link from 'next/link'
 
 export default function AgendaPage() {
@@ -20,17 +20,10 @@ export default function AgendaPage() {
 
   useEffect(() => {
     loadAndDisplayEvents()
-    
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      loadAndDisplayEvents()
-    }
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  const loadAndDisplayEvents = () => {
-    const loadedEvents = loadEvents()
+  const loadAndDisplayEvents = async () => {
+    const loadedEvents = await loadEvents()
     const sorted = [...loadedEvents].sort((a, b) => {
       const dateA = new Date(a.date)
       const dateB = new Date(b.date)
@@ -47,7 +40,7 @@ export default function AgendaPage() {
     setEvents(sorted)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!isLoggedIn) {
@@ -55,21 +48,19 @@ export default function AgendaPage() {
       return
     }
 
-    const newEvent: Event = {
-      id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    const eventData = {
       title: formData.title.trim(),
       date: formData.date,
       time: formData.time || null,
       location: formData.location ? formData.location.trim() : null,
       description: formData.description ? formData.description.trim() : null,
       icon: formData.icon || '📅',
-      createdBy: currentUser || 'Unknown',
-      createdAt: new Date().toISOString()
+      createdBy: currentUser || 'Unknown'
     }
 
-    const updatedEvents = [...events, newEvent]
-    if (saveEvents(updatedEvents)) {
-      loadAndDisplayEvents()
+    const newEvent = await createEvent(eventData)
+    if (newEvent) {
+      await loadAndDisplayEvents()
       setShowModal(false)
       setFormData({
         title: '',
@@ -82,14 +73,14 @@ export default function AgendaPage() {
     }
   }
 
-  const handleDelete = (eventId: string) => {
+  const handleDelete = async (eventId: string) => {
     if (!confirm('Weet je zeker dat je dit evenement wilt verwijderen?')) {
       return
     }
 
-    const filteredEvents = events.filter(event => event.id !== eventId)
-    if (saveEvents(filteredEvents)) {
-      loadAndDisplayEvents()
+    const success = await deleteEvent(eventId)
+    if (success) {
+      await loadAndDisplayEvents()
     }
   }
 

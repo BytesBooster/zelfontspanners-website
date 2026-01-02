@@ -20,14 +20,125 @@ export interface MonthData {
   winner?: FotoSubmission | null
 }
 
-export function loadSubmissions(): Record<string, MonthData> {
+// Load submissions from API
+export async function loadSubmissions(): Promise<Record<string, MonthData>> {
   if (typeof window === 'undefined') return {}
-  return JSON.parse(localStorage.getItem('fotoVanDeMaandSubmissions') || '{}')
+  
+  try {
+    // Get current month and a few months back/forward
+    const now = new Date()
+    const months: Record<string, MonthData> = {}
+    
+    // Load last 3 months, current month, and next 3 months
+    for (let i = -3; i <= 3; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      const month = date.getMonth() + 1
+      const year = date.getFullYear()
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`
+      
+      const response = await fetch(`/api/foto-van-de-maand?month=${month}&year=${year}`)
+      if (response.ok) {
+        const data = await response.json()
+        months[monthKey] = {
+          submissions: data.submissions || [],
+          winner: data.winner || null
+        }
+      }
+    }
+    
+    return months
+  } catch (error) {
+    console.error('Error loading submissions:', error)
+    return {}
+  }
 }
 
-export function saveSubmissions(data: Record<string, MonthData>): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('fotoVanDeMaandSubmissions', JSON.stringify(data))
+// Load submissions for specific month
+export async function loadSubmissionsForMonth(month: number, year: number): Promise<MonthData> {
+  if (typeof window === 'undefined') return { submissions: [], winner: null }
+  
+  try {
+    const response = await fetch(`/api/foto-van-de-maand?month=${month}&year=${year}`)
+    if (!response.ok) {
+      return { submissions: [], winner: null }
+    }
+    
+    const data = await response.json()
+    return {
+      submissions: data.submissions || [],
+      winner: data.winner || null
+    }
+  } catch (error) {
+    console.error('Error loading submissions for month:', error)
+    return { submissions: [], winner: null }
+  }
+}
+
+// Save submission via API
+export async function saveSubmission(submission: Omit<FotoSubmission, 'id' | 'uploadDate'>): Promise<FotoSubmission | null> {
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
+    
+    const response = await fetch('/api/foto-van-de-maand', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberName: submission.photographer,
+        imageSrc: submission.imageSrc,
+        title: submission.title,
+        month,
+        year,
+        excursionId: submission.excursionId,
+        excursionTitle: submission.excursionTitle,
+        excursionLocation: submission.excursionLocation,
+        excursionDate: submission.excursionDate
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to save submission')
+    }
+
+    const data = await response.json()
+    return {
+      id: data.submission.id.toString(),
+      photographer: data.submission.memberName,
+      title: data.submission.title || '',
+      imageSrc: data.submission.imageSrc,
+      votes: data.submission.votes || [],
+      uploadDate: data.submission.createdAt,
+      excursionId: data.submission.excursionId,
+      excursionTitle: data.submission.excursionTitle,
+      excursionLocation: data.submission.excursionLocation,
+      excursionDate: data.submission.excursionDate
+    }
+  } catch (error: any) {
+    console.error('Error saving submission:', error)
+    throw error
+  }
+}
+
+// Vote for submission via API
+export async function voteForSubmission(submissionId: string, memberName: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  
+  try {
+    const response = await fetch('/api/foto-van-de-maand', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submissionId, memberName })
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error voting for submission:', error)
+    return false
+  }
 }
 
 export function getCurrentMonthKey(): string {
@@ -42,9 +153,9 @@ export function getMonthName(monthKey: string): string {
   return monthNames[month] || monthKey
 }
 
-export function getCurrentMonthExcursion(): Event | null {
+export async function getCurrentMonthExcursion(): Promise<Event | null> {
   try {
-    const events = loadEvents()
+    const events = await loadEvents()
     const currentMonthKey = getCurrentMonthKey()
     const [year, month] = currentMonthKey.split('-').map(Number)
     
@@ -63,23 +174,23 @@ export function getCurrentMonthExcursion(): Event | null {
   }
 }
 
-export function getUserSubmissionsForMonth(monthKey: string, currentUser: string | null): FotoSubmission[] {
+export async function getUserSubmissionsForMonth(monthKey: string, currentUser: string | null): Promise<FotoSubmission[]> {
   if (!currentUser) return []
-  const submissions = loadSubmissions()
+  const submissions = await loadSubmissions()
   const monthData = submissions[monthKey] || { submissions: [] }
   return monthData.submissions.filter(sub => sub.photographer === currentUser)
 }
 
-export function canUserUpload(currentUser: string | null): boolean {
+export async function canUserUpload(currentUser: string | null): Promise<boolean> {
   if (!currentUser) return false
   const currentMonthKey = getCurrentMonthKey()
-  const userSubmissions = getUserSubmissionsForMonth(currentMonthKey, currentUser)
+  const userSubmissions = await getUserSubmissionsForMonth(currentMonthKey, currentUser)
   return userSubmissions.length < 5
 }
 
-export function getRemainingUploadSlots(currentUser: string | null): number {
+export async function getRemainingUploadSlots(currentUser: string | null): Promise<number> {
   const currentMonthKey = getCurrentMonthKey()
-  const userSubmissions = getUserSubmissionsForMonth(currentMonthKey, currentUser)
+  const userSubmissions = await getUserSubmissionsForMonth(currentMonthKey, currentUser)
   return Math.max(0, 5 - userSubmissions.length)
 }
 
