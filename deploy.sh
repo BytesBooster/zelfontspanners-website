@@ -45,15 +45,22 @@ git pull origin main || {
     echo "⚠️  Git pull failed, maar we gaan door..."
 }
 
-# Remove old files that might contain modals
-echo "🗑️  Removing old HTML/JS files that might contain modals..."
+# Remove old files that might contain modals - AGGRESSIVE
+echo "🗑️  Removing ALL old HTML/JS files that might contain modals..."
+rm -f *.html
 rm -f login.html portfolio-manage.html index.html portfolio.html
 rm -f leden.html contact.html agenda.html over-ons.html
 rm -f sponsors.html foto-van-de-maand.html
-rm -f auth.js login.js portfolio-manage.js components.js
-rm -f script.js portfolio.js agenda.js contact.js
-rm -f foto-van-de-maand.js leden.js over-ons.js
-echo "✅ Oude bestanden verwijderd"
+rm -f add-2026-excursies.html fix-2025-to-2026.html
+rm -f test-mock-data.html remove-test-event.html
+rm -f auth.js login.js portfolio-manage.js portfolio-manage-drag.js
+rm -f components.js script.js portfolio.js agenda.js
+rm -f contact.js foto-van-de-maand.js leden.js over-ons.js
+rm -f add-albert-photos-to-portfolio.js download-albert-photos.js
+rm -f download-all-portfolios.js create-portfolio-folders.js
+rm -f load-mock-data.js clear-mock-data.js remove-alfred-account.js
+rm -f reset-passwords.js
+echo "✅ Alle oude bestanden verwijderd"
 
 # Stop PM2 temporarily
 echo "⏸️  Stopping PM2..."
