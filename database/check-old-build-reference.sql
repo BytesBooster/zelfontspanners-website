@@ -48,23 +48,27 @@ UNION ALL
 
 SELECT 'foto_van_de_maand' as table_name, id::text as id, member_name,
        CASE 
-         WHEN photo_src::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN PHOTO_SRC'
-         WHEN description::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN DESCRIPTION'
+         WHEN image_src::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN IMAGE_SRC'
+         WHEN title::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN TITLE'
+         WHEN excursion_title::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN EXCURSION_TITLE'
+         WHEN excursion_location::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN EXCURSION_LOCATION'
          ELSE NULL
        END as found_in
 FROM foto_van_de_maand
-WHERE photo_src::text LIKE '%94f0854bcc52beb1%' 
-   OR description::text LIKE '%94f0854bcc52beb1%'
+WHERE image_src::text LIKE '%94f0854bcc52beb1%' 
+   OR title::text LIKE '%94f0854bcc52beb1%'
+   OR excursion_title::text LIKE '%94f0854bcc52beb1%'
+   OR excursion_location::text LIKE '%94f0854bcc52beb1%'
 
 UNION ALL
 
 SELECT 'photo_comments' as table_name, id::text as id, member_name,
        CASE 
-         WHEN comment_text::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN COMMENT_TEXT'
+         WHEN comment::text LIKE '%94f0854bcc52beb1%' THEN 'FOUND IN COMMENT'
          ELSE NULL
        END as found_in
 FROM photo_comments
-WHERE comment_text::text LIKE '%94f0854bcc52beb1%';
+WHERE comment::text LIKE '%94f0854bcc52beb1%';
 
 -- Also check for any HTML/JavaScript content
 SELECT 'CHECKING FOR HTML/JS CONTENT' as check_type,
