@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDbClient, TABLES } from '@/lib/db'
-import { isAdmin } from '@/lib/auth'
 
 /**
  * API route om portfolio's van portfolio-data.js naar database te migreren
