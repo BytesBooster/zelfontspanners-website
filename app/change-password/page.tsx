@@ -26,8 +26,8 @@ export default function ChangePasswordPage() {
       // Check if password change is actually required
       const needsChange = await requiresPasswordChange(currentUser)
       if (!needsChange) {
-        // Password already changed, redirect to portfolio
-        router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
+        // Password already changed, redirect to home page
+        router.push('/')
       }
     }
     check()
@@ -145,7 +145,7 @@ export default function ChangePasswordPage() {
       
       setMessage({ text: 'Wachtwoord succesvol gewijzigd! Je wordt doorgestuurd...', type: 'success' })
       setTimeout(() => {
-        router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
+        router.push('/')
       }, 2000)
     } else {
       setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })

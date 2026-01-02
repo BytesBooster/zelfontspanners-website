@@ -28,7 +28,8 @@ export default function LoginPage() {
         if (needsChange) {
           router.push('/change-password')
         } else {
-          router.push(`/portfolio-manage?member=${encodeURIComponent(currentUser)}`)
+          // Redirect to home page if already logged in
+          router.push('/')
         }
       }
     }
@@ -53,7 +54,7 @@ export default function LoginPage() {
       } else {
         setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
         setTimeout(() => {
-          router.push(`/portfolio-manage?member=${encodeURIComponent(formData.memberName)}`)
+          router.push('/')
         }, 1000)
       }
     } else {
