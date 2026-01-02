@@ -1,189 +1,102 @@
 #!/bin/bash
-export PATH="/usr/bin:/usr/local/bin:/bin:$PATH"
-cd /var/www/vhosts/zelfontspanners.nl/nodejs
+# Deployment script voor zelfontspanners.nl
 
-# Fix script permissies
-chmod +x deploy.sh 2>/dev/null || true
-chown psaadm:psaserv deploy.sh 2>/dev/null || true
+set -e  # Exit on error
 
-# Stash lokale wijzigingen voordat we pullen (om merge conflicts te voorkomen)
-echo "Stashing lokale wijzigingen..."
-git stash push -m "Auto-stash before deploy - $(date)" 2>/dev/null || true
+APP_DIR="/var/www/vhosts/zelfontspanners.nl/nodejs"
+cd "$APP_DIR" || exit 1
 
-# Reset naar remote state als er nog steeds conflicten zijn
-echo "Pulling laatste wijzigingen..."
-git fetch origin
-git reset --hard origin/main 2>/dev/null || git reset --hard origin/master 2>/dev/null || true
-
-# Pull laatste wijzigingen
-git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
-
-# Check of npm beschikbaar is
-echo "Checking npm availability..."
-NPM_PATH=$(which npm 2>/dev/null || echo "")
-if [ -z "$NPM_PATH" ]; then
-    # Probeer verschillende locaties
-    if [ -f "/usr/bin/npm" ]; then
-        NPM_PATH="/usr/bin/npm"
-    elif [ -f "/usr/local/bin/npm" ]; then
-        NPM_PATH="/usr/local/bin/npm"
-    elif [ -f "/opt/plesk/node/18/bin/npm" ]; then
-        NPM_PATH="/opt/plesk/node/18/bin/npm"
-    else
-        echo ""
-        echo "=========================================="
-        echo "ERROR: npm niet gevonden!"
-        echo "=========================================="
-        echo "Zoek naar npm met: which npm"
-        echo "Of installeer Node.js/npm op de server."
-        exit 1
-    fi
-fi
-
-echo "Using npm: $NPM_PATH"
-echo "npm version: $($NPM_PATH --version)"
-
-# Installeer dependencies eerst (voor het geval er nieuwe zijn)
+echo "=========================================="
+echo "Deploying zelfontspanners.nl"
+echo "=========================================="
 echo ""
-echo "Installing dependencies..."
-$NPM_PATH install --legacy-peer-deps
 
-if [ $? -ne 0 ]; then
-    echo "npm install met --legacy-peer-deps gefaald, probeer zonder..."
-    $NPM_PATH install
-    if [ $? -ne 0 ]; then
-        echo ""
-        echo "=========================================="
-        echo "ERROR: npm install gefaald!"
-        echo "=========================================="
-        exit 1
-    fi
-fi
-
-# Verifieer dat belangrijke dependencies geïnstalleerd zijn
-if [ ! -d "node_modules/@supabase/supabase-js" ]; then
-    echo "⚠ @supabase/supabase-js niet gevonden, probeer opnieuw te installeren..."
-    $NPM_PATH install @supabase/supabase-js --legacy-peer-deps || $NPM_PATH install @supabase/supabase-js
-fi
-
-# Check of package.json bestaat en build script aanwezig is
+# Check if we're in the right directory
 if [ ! -f "package.json" ]; then
-    echo ""
-    echo "=========================================="
-    echo "ERROR: package.json niet gevonden!"
-    echo "=========================================="
+    echo "❌ Error: package.json niet gevonden in $APP_DIR"
     exit 1
 fi
 
-# Check of build script bestaat in package.json
+# Check if build script exists
 if ! grep -q '"build"' package.json; then
-    echo ""
-    echo "=========================================="
-    echo "ERROR: build script niet gevonden in package.json!"
-    echo "=========================================="
+    echo "❌ Error: Geen build script gevonden in package.json"
     exit 1
 fi
 
-# Build de applicatie met extra memory voor webpack
-echo ""
-echo "Building applicatie..."
-echo "Memory check:"
-free -h | head -2
-echo ""
-
-# Check Node.js versie voor memory flag
-NODE_PATH=$(which node 2>/dev/null || echo "")
-if [ -z "$NODE_PATH" ]; then
-    if [ -f "/usr/bin/node" ]; then
-        NODE_PATH="/usr/bin/node"
-    elif [ -f "/usr/local/bin/node" ]; then
-        NODE_PATH="/usr/local/bin/node"
-    elif [ -f "/opt/plesk/node/18/bin/node" ]; then
-        NODE_PATH="/opt/plesk/node/18/bin/node"
-    fi
-fi
-
-# Probeer build met extra memory (voor webpack memory issues)
-if [ -n "$NODE_PATH" ]; then
-    echo "Using Node.js: $NODE_PATH"
-    echo "Node version: $($NODE_PATH --version)"
-    
-    # Set NODE_OPTIONS voor extra memory
-    export NODE_OPTIONS="--max-old-space-size=4096"
-    echo "Memory limit: 4GB (via NODE_OPTIONS)"
-fi
-
-# Build met verbose output voor betere error messages
-echo ""
-echo "Starting build (dit kan even duren)..."
-$NPM_PATH run build 2>&1 | tee build-output.log
-
-# Check of build succesvol was
-BUILD_EXIT_CODE=${PIPESTATUS[0]}
-if [ $BUILD_EXIT_CODE -ne 0 ]; then
-    echo ""
-    echo "=========================================="
-    echo "ERROR: Build gefaald!"
-    echo "=========================================="
-    echo ""
-    echo "Laatste 50 regels van build output:"
-    echo "----------------------------------------"
-    tail -50 build-output.log
-    echo "----------------------------------------"
-    echo ""
-    echo "PM2 wordt NIET herstart om oude werkende versie te behouden."
-    echo ""
-    echo "Mogelijke oplossingen:"
-    echo "1. Check memory: free -h"
-    echo "2. Reinstall dependencies: rm -rf node_modules package-lock.json && npm install"
-    echo "3. Check Node.js versie: node --version"
-    echo "4. Voer diagnose uit: bash diagnose-build-error.sh"
-    echo ""
-    exit 1
-fi
-
-# Cleanup build log als succesvol
-rm -f build-output.log
-
-echo ""
-echo "✓ Build succesvol!"
-echo ""
-
-# Kopieer public folder en .next/server naar standalone build
-if [ -d ".next/standalone" ]; then
-    if [ -d "public" ]; then
-        cp -r public .next/standalone/
-    fi
-    
-    if [ -d ".next/server" ]; then
-        mkdir -p .next/standalone/.next
-        cp -r .next/server .next/standalone/.next/
-    fi
-    
-    if [ -d ".next/static" ]; then
-        mkdir -p .next/standalone/.next
-        cp -r .next/static .next/standalone/.next/
-    fi
-fi
-
-# Herstart PM2 alleen als build succesvol was
-echo "Herstarten PM2 applicatie..."
-/usr/bin/pm2 restart zelfontspanners
-
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "=========================================="
-    echo "✓ Deployment completed successfully!"
-    echo "=========================================="
-    echo ""
-    echo "Applicatie is geüpdatet en herstart."
-    echo "Check status met: pm2 status"
-    echo "Check logs met: pm2 logs zelfontspanners"
-    echo ""
+# Find npm
+if command -v npm &> /dev/null; then
+    NPM_CMD="npm"
+elif [ -f "/usr/local/bin/npm" ]; then
+    NPM_CMD="/usr/local/bin/npm"
+elif [ -f "/usr/bin/npm" ]; then
+    NPM_CMD="/usr/bin/npm"
 else
-    echo ""
-    echo "ERROR: PM2 restart gefaald!"
-    echo "Check PM2 status: pm2 status"
-    echo "Check PM2 logs: pm2 logs zelfontspanners"
+    echo "❌ Error: npm niet gevonden"
     exit 1
 fi
+
+echo "Gebruikte npm: $NPM_CMD"
+echo "Node versie: $($NPM_CMD --version)"
+echo ""
+
+# Pull latest code
+echo "📥 Pulling latest code from Git..."
+git pull origin main || {
+    echo "⚠️  Git pull failed, maar we gaan door..."
+}
+
+# Stop PM2 temporarily
+echo "⏸️  Stopping PM2..."
+pm2 stop zelfontspanners 2>/dev/null || true
+
+# Remove old build to force fresh build
+echo "🗑️  Removing old .next build..."
+rm -rf .next
+
+# Install dependencies
+echo "📦 Installing dependencies..."
+$NPM_CMD install --legacy-peer-deps || {
+    echo "⚠️  npm install had warnings, maar we gaan door..."
+}
+
+# Check for @supabase/supabase-js
+if ! $NPM_CMD list @supabase/supabase-js &> /dev/null; then
+    echo "⚠️  @supabase/supabase-js niet gevonden, installeren..."
+    $NPM_CMD install @supabase/supabase-js --legacy-peer-deps
+fi
+
+# Build with extra memory
+echo "🔨 Building Next.js app..."
+export NODE_OPTIONS="--max-old-space-size=4096"
+BUILD_OUTPUT=$($NPM_CMD run build 2>&1)
+BUILD_EXIT=$?
+
+if [ $BUILD_EXIT -ne 0 ]; then
+    echo "❌ Build failed!"
+    echo "$BUILD_OUTPUT" | tail -50
+    echo ""
+    echo "=========================================="
+    echo "Als build faalt, check:"
+    echo "1. PM2 logs: pm2 logs zelfontspanners --lines 50"
+    echo "2. Node memory: node --max-old-space-size=4096 (voor memory issues)"
+    echo "3. Reinstall: rm -rf node_modules package-lock.json && npm install"
+    echo "=========================================="
+    pm2 start ecosystem.config.js 2>/dev/null || pm2 restart zelfontspanners 2>/dev/null || true
+    exit 1
+fi
+
+echo "✅ Build successful!"
+echo ""
+
+# Restart PM2
+echo "🔄 Restarting PM2..."
+pm2 restart zelfontspanners || pm2 start ecosystem.config.js
+
+echo ""
+echo "✅ Deployment voltooid!"
+echo ""
+echo "PM2 Status:"
+pm2 status zelfontspanners
+echo ""
+echo "Laatste logs:"
+pm2 logs zelfontspanners --lines 10 --nostream
