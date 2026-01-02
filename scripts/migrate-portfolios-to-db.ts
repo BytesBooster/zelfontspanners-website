@@ -26,20 +26,55 @@ const portfolioDataPath = path.join(process.cwd(), 'public', 'portfolio-data.js'
 const portfolioDataContent = fs.readFileSync(portfolioDataPath, 'utf-8')
 
 // Extract STATIC_PORTFOLIO_DATA from the file
-// This is a bit hacky but works for this migration
-const dataMatch = portfolioDataContent.match(/const STATIC_PORTFOLIO_DATA = ({[\s\S]*?});/)
-if (!dataMatch) {
+// Find the start and end of the STATIC_PORTFOLIO_DATA object
+const startMarker = 'const STATIC_PORTFOLIO_DATA = {'
+const startIndex = portfolioDataContent.indexOf(startMarker)
+if (startIndex === -1) {
   console.error('❌ Kon STATIC_PORTFOLIO_DATA niet vinden in portfolio-data.js')
   process.exit(1)
 }
 
-// Evaluate the JavaScript to get the data (in a safe way)
+// Find the closing brace that matches the opening brace
+let braceCount = 0
+let endIndex = startIndex + startMarker.length
+let inString = false
+let stringChar = ''
+
+for (let i = startIndex + startMarker.length; i < portfolioDataContent.length; i++) {
+  const char = portfolioDataContent[i]
+  const prevChar = i > 0 ? portfolioDataContent[i - 1] : ''
+  
+  // Handle string literals
+  if (!inString && (char === '"' || char === "'" || char === '`')) {
+    inString = true
+    stringChar = char
+  } else if (inString && char === stringChar && prevChar !== '\\') {
+    inString = false
+  }
+  
+  // Count braces (only when not in string)
+  if (!inString) {
+    if (char === '{') braceCount++
+    if (char === '}') {
+      braceCount--
+      if (braceCount === 0) {
+        endIndex = i + 1
+        break
+      }
+    }
+  }
+}
+
+const dataString = portfolioDataContent.substring(startIndex + startMarker.length - 1, endIndex)
+
+// Evaluate the JavaScript to get the data (only for migration script)
 let staticPortfolioData: Record<string, { name: string; photos: Array<{ src: string; title: string; category?: string }> }>
 try {
   // Use eval in a controlled way (only for migration script)
-  eval(`staticPortfolioData = ${dataMatch[1]}`)
+  eval(`staticPortfolioData = ${dataString}`)
 } catch (error) {
   console.error('❌ Fout bij het parsen van portfolio-data.js:', error)
+  console.error('Tip: Controleer of portfolio-data.js geldige JavaScript syntax heeft')
   process.exit(1)
 }
 
