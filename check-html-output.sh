@@ -39,13 +39,13 @@ if [ -z "$HTML_OUTPUT" ]; then
 fi
 
 echo "📄 Layout file referenties in HTML:"
-echo "$HTML_OUTPUT" | grep -o 'layout-[^\"']*\.js' | sort -u | head -10
+echo "$HTML_OUTPUT" | grep -o 'layout-[^"'\'']*\.js' | sort -u | head -10
 
 echo ""
 echo "🔍 Check of oude hash (94f0854bcc52beb1) in HTML zit:"
 if echo "$HTML_OUTPUT" | grep -q "94f0854bcc52beb1"; then
     echo "❌ OUDE HASH GEVONDEN IN HTML OUTPUT!"
-    echo "$HTML_OUTPUT" | grep -o 'layout-[^\"']*94f0854bcc52beb1[^\"']*\.js' | head -5
+    echo "$HTML_OUTPUT" | grep -o 'layout-[^"'\'']*94f0854bcc52beb1[^"'\'']*\.js' | head -5
     echo ""
     echo "Dit betekent dat de server nog steeds de oude build serveert!"
 else
