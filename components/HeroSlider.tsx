@@ -3,21 +3,65 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
-const heroImages = [
-  '/images/hero1.jpg',
-  '/images/hero2.jpg',
-  '/images/hero3.jpg',
-]
+interface PortfolioPhoto {
+  src: string
+  title?: string
+  category?: string
+}
 
 export function HeroSlider() {
+  const [heroImages, setHeroImages] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load random portfolio photos from database
+  useEffect(() => {
+    async function loadRandomPhotos() {
+      try {
+        const response = await fetch('/api/portfolio/random?count=10')
+        if (!response.ok) {
+          console.error('Error loading random photos:', response.statusText)
+          // Fallback to empty array
+          setHeroImages([])
+          setIsLoading(false)
+          return
+        }
+        
+        const data = await response.json()
+        const photos: PortfolioPhoto[] = data.photos || []
+        
+        // Extract image sources and ensure they start with /
+        const imageSrcs = photos
+          .map(photo => {
+            let src = photo.src
+            // Ensure path starts with /
+            if (src && !src.startsWith('/') && !src.startsWith('http')) {
+              src = '/' + src
+            }
+            return src
+          })
+          .filter(Boolean)
+        
+        setHeroImages(imageSrcs)
+      } catch (error) {
+        console.error('Error loading random portfolio photos:', error)
+        setHeroImages([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadRandomPhotos()
+  }, [])
 
   useEffect(() => {
+    if (heroImages.length === 0) return
+
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroImages.length)
     }, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [heroImages.length])
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index)
@@ -31,12 +75,58 @@ export function HeroSlider() {
     setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)
   }
 
+  // Show loading or fallback if no images
+  if (isLoading) {
+    return (
+      <section id="home" className="home-hero">
+        <div className="home-hero-slider" id="heroSlider">
+          <div className="hero-slide active" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'block'
+          }} />
+        </div>
+        <div className="home-hero-overlay"></div>
+        <div className="home-hero-content">
+          <h1 className="home-hero-title">De Zelfontspanners</h1>
+          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
+          <div className="home-hero-actions">
+            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
+            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // If no images loaded, show gradient background
+  if (heroImages.length === 0) {
+    return (
+      <section id="home" className="home-hero">
+        <div className="home-hero-slider" id="heroSlider">
+          <div className="hero-slide active" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'block'
+          }} />
+        </div>
+        <div className="home-hero-overlay"></div>
+        <div className="home-hero-content">
+          <h1 className="home-hero-title">De Zelfontspanners</h1>
+          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
+          <div className="home-hero-actions">
+            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
+            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section id="home" className="home-hero">
       <div className="home-hero-slider" id="heroSlider">
         {heroImages.map((src, index) => (
           <div
-            key={index}
+            key={`${src}-${index}`}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
             style={{ display: index === currentSlide ? 'block' : 'none' }}
           >
