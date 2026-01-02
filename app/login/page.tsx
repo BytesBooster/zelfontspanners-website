@@ -2,39 +2,41 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth, login, initializeAccounts, requiresPasswordChange } from '@/lib/auth'
+import { useAuth, login, initializeAccounts } from '@/lib/auth'
 import { getAllMembers } from '@/lib/members'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isLoggedIn, currentUser } = useAuth()
+  const { isLoggedIn, currentUser, requiresPasswordChange, isLoading } = useAuth()
   const [members, setMembers] = useState<string[]>([])
   const [formData, setFormData] = useState({
     memberName: '',
     password: ''
   })
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Initialize members list
   useEffect(() => {
     const init = async () => {
       await initializeAccounts()
       const allMembers = getAllMembers()
       const sorted = [...allMembers].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }))
       setMembers(sorted)
-      
-      if (isLoggedIn && currentUser) {
-        // Check if password change is needed
-        const needsChange = await requiresPasswordChange(currentUser)
-        if (needsChange) {
-          router.push('/change-password')
-        } else {
-          // Redirect to home page if already logged in
-          router.push('/')
-        }
-      }
     }
     init()
-  }, [isLoggedIn, currentUser, router])
+  }, [])
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isLoggedIn && currentUser) {
+      if (requiresPasswordChange) {
+        router.push('/change-password')
+      } else {
+        router.push('/')
+      }
+    }
+  }, [isLoading, isLoggedIn, currentUser, requiresPasswordChange, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,22 +47,44 @@ export default function LoginPage() {
       return
     }
 
-    const result = await login(formData.memberName, formData.password)
+    setIsSubmitting(true)
+    setMessage(null)
 
-    if (result.success) {
-      if (result.requiresPasswordChange) {
-        // Redirect to change-password page
-        router.push('/change-password')
+    try {
+      const result = await login(formData.memberName.trim(), formData.password)
+
+      if (result.success) {
+        if (result.requiresPasswordChange) {
+          router.push('/change-password')
+        } else {
+          setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
+          setTimeout(() => {
+            router.push('/')
+          }, 500)
+        }
       } else {
-        setMessage({ text: 'Succesvol ingelogd! Je wordt doorgestuurd...', type: 'success' })
-        setTimeout(() => {
-          router.push('/')
-        }, 1000)
+        setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
+        setTimeout(() => setMessage(null), 5000)
       }
-    } else {
-      setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
+    } catch (error: any) {
+      setMessage({ text: 'Er is een fout opgetreden. Probeer het opnieuw.', type: 'error' })
       setTimeout(() => setMessage(null), 5000)
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <section className="login-page">
+        <div className="container">
+          <div className="login-card">
+            <p>Laden...</p>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -84,6 +108,7 @@ export default function LoginPage() {
                 required
                 value={formData.memberName}
                 onChange={(e) => setFormData(prev => ({ ...prev, memberName: e.target.value }))}
+                disabled={isSubmitting}
               >
                 <option value="">Selecteer je naam...</option>
                 {members.map(member => (
@@ -101,10 +126,18 @@ export default function LoginPage() {
                 placeholder="Voer je wachtwoord in"
                 value={formData.password}
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                disabled={isSubmitting}
+                autoComplete="current-password"
               />
             </div>
             
-            <button type="submit" className="btn btn-primary">Inloggen</button>
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Inloggen...' : 'Inloggen'}
+            </button>
           </form>
           
           <div className="login-help">

@@ -2,160 +2,94 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth, changePassword, requiresPasswordChange } from '@/lib/auth'
+import { useAuth, changePassword } from '@/lib/auth'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
-  const { isLoggedIn, currentUser } = useAuth()
+  const { isLoggedIn, currentUser, requiresPasswordChange, isLoading } = useAuth()
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Redirect if not logged in or password change not required
   useEffect(() => {
-    const check = async () => {
-      // Redirect if not logged in
+    if (!isLoading) {
       if (!isLoggedIn || !currentUser) {
         router.push('/login')
         return
       }
-
-      // Check if password change is actually required
-      const needsChange = await requiresPasswordChange(currentUser)
-      if (!needsChange) {
-        // Password already changed, redirect to home page
+      
+      if (!requiresPasswordChange) {
         router.push('/')
+        return
       }
     }
-    check()
-  }, [isLoggedIn, currentUser, router])
-
-  // Remove session if user leaves page without changing password
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Remove session if user leaves page without changing password
-      if (typeof window !== 'undefined') {
-        const sessionStr = localStorage.getItem('currentSession')
-        if (sessionStr) {
-          try {
-            const session = JSON.parse(sessionStr)
-            // Only remove if session has pendingPasswordChange flag
-            if (session.pendingPasswordChange) {
-              localStorage.removeItem('currentSession')
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      // If page becomes hidden, check if we should remove session
-      if (document.hidden && typeof window !== 'undefined') {
-        const sessionStr = localStorage.getItem('currentSession')
-        if (sessionStr) {
-          try {
-            const session = JSON.parse(sessionStr)
-            // Only remove if session has pendingPasswordChange flag
-            if (session.pendingPasswordChange) {
-              setTimeout(() => {
-                // Double check after delay
-                const checkSession = localStorage.getItem('currentSession')
-                if (checkSession) {
-                  try {
-                    const checkSessionObj = JSON.parse(checkSession)
-                    if (checkSessionObj.pendingPasswordChange) {
-                      localStorage.removeItem('currentSession')
-                      window.location.href = '/login'
-                    }
-                  } catch (e) {
-                    // Ignore
-                  }
-                }
-              }, 500)
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    }
-
-    // Add event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [])
+  }, [isLoading, isLoggedIn, currentUser, requiresPasswordChange, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage(null)
 
+    // Validation
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
       setMessage({ text: 'Vul alle velden in', type: 'error' })
-      setTimeout(() => setMessage(null), 5000)
       return
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage({ text: 'De nieuwe wachtwoorden komen niet overeen', type: 'error' })
-      setTimeout(() => setMessage(null), 5000)
       return
     }
 
     if (formData.newPassword.length < 6) {
       setMessage({ text: 'Nieuw wachtwoord moet minimaal 6 tekens lang zijn', type: 'error' })
-      setTimeout(() => setMessage(null), 5000)
       return
     }
 
     if (!currentUser) {
       setMessage({ text: 'Geen gebruiker gevonden', type: 'error' })
-      setTimeout(() => setMessage(null), 5000)
       return
     }
 
-    setLoading(true)
-    const result = await changePassword(currentUser, formData.currentPassword, formData.newPassword)
+    setIsSubmitting(true)
 
-    if (result.success) {
-      // Update session to remove pendingPasswordChange flag
-      if (typeof window !== 'undefined' && currentUser) {
-        const sessionStr = localStorage.getItem('currentSession')
-        if (sessionStr) {
-          try {
-            const session = JSON.parse(sessionStr)
-            // Remove pendingPasswordChange flag to make session permanent
-            delete session.pendingPasswordChange
-            localStorage.setItem('currentSession', JSON.stringify(session))
-          } catch (e) {
-            console.error('Error updating session:', e)
-          }
-        }
+    try {
+      const result = await changePassword(
+        currentUser, 
+        formData.currentPassword, 
+        formData.newPassword
+      )
+
+      if (result.success) {
+        setMessage({ text: 'Wachtwoord succesvol gewijzigd! Je wordt doorgestuurd...', type: 'success' })
+        setTimeout(() => {
+          router.push('/')
+        }, 1500)
+      } else {
+        setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
+        setIsSubmitting(false)
       }
-      
-      setMessage({ text: 'Wachtwoord succesvol gewijzigd! Je wordt doorgestuurd...', type: 'success' })
-      setTimeout(() => {
-        router.push('/')
-      }, 2000)
-    } else {
-      setMessage({ text: result.message || 'Er is een fout opgetreden', type: 'error' })
-      setTimeout(() => setMessage(null), 5000)
-      setLoading(false)
+    } catch (error: any) {
+      setMessage({ text: 'Er is een fout opgetreden. Probeer het opnieuw.', type: 'error' })
+      setIsSubmitting(false)
     }
   }
 
-  if (!isLoggedIn || !currentUser) {
-    return null // Will redirect
+  // Show loading or redirect
+  if (isLoading || !isLoggedIn || !currentUser || !requiresPasswordChange) {
+    return (
+      <section className="login-page">
+        <div className="container">
+          <div className="login-card">
+            <p>Laden...</p>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -183,7 +117,8 @@ export default function ChangePasswordPage() {
                 placeholder="Voer je huidige wachtwoord in"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                disabled={loading}
+                disabled={isSubmitting}
+                autoComplete="current-password"
               />
             </div>
             
@@ -196,8 +131,9 @@ export default function ChangePasswordPage() {
                 placeholder="Minimaal 6 tekens"
                 value={formData.newPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
-                disabled={loading}
+                disabled={isSubmitting}
                 minLength={6}
+                autoComplete="new-password"
               />
             </div>
             
@@ -210,13 +146,18 @@ export default function ChangePasswordPage() {
                 placeholder="Bevestig je nieuwe wachtwoord"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                disabled={loading}
+                disabled={isSubmitting}
                 minLength={6}
+                autoComplete="new-password"
               />
             </div>
             
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Wijzigen...' : 'Wachtwoord Wijzigen'}
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Wijzigen...' : 'Wachtwoord Wijzigen'}
             </button>
           </form>
         </div>
@@ -224,4 +165,3 @@ export default function ChangePasswordPage() {
     </section>
   )
 }
-
