@@ -16,8 +16,15 @@ if ! pm2 list | grep -q "zelfontspanners.*online"; then
     exit 1
 fi
 
-# Get port from PM2
-PORT=$(pm2 jlist | grep -o '"port":[0-9]*' | head -1 | cut -d: -f2 || echo "3000")
+# Get port from PM2 or ecosystem.config.js
+PORT=$(pm2 jlist | grep -o '"port":[0-9]*' | head -1 | cut -d: -f2 || echo "")
+if [ -z "$PORT" ]; then
+    # Try to get from ecosystem.config.js
+    PORT=$(grep -o 'PORT:[0-9]*' ecosystem.config.js 2>/dev/null | cut -d: -f2 || echo "3001")
+fi
+if [ -z "$PORT" ]; then
+    PORT="3001"  # Default port from ecosystem.config.js
+fi
 
 echo "🔍 Testing HTML output op localhost:$PORT..."
 echo ""
