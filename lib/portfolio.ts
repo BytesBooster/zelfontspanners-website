@@ -41,21 +41,51 @@ export function getPhotoId(photoSrc: string): string {
   return normalizedSrc.replace(/[^a-zA-Z0-9\/]/g, '_').replace(/\//g, '_')
 }
 
-// Load portfolio data from API
+// Load portfolio data from API with fallback to portfolio-data.js
 export async function loadPortfolioData(memberName: string): Promise<PortfolioData | null> {
   if (typeof window === 'undefined') return null
   
   try {
+    // First try API (database)
     const response = await fetch(`/api/portfolio?memberName=${encodeURIComponent(memberName)}`)
-    if (!response.ok) {
-      console.error('Error loading portfolio:', response.statusText)
-      return null
+    if (response.ok) {
+      const data = await response.json()
+      // If API returns photos, use it
+      if (data && data.photos && data.photos.length > 0) {
+        return data
+      }
     }
     
-    const data = await response.json()
-    return data
+    // Fallback to portfolio-data.js if API is empty or fails
+    if (typeof window !== 'undefined' && typeof (window as any).loadPortfolioData === 'function') {
+      const allPortfolioData = (window as any).loadPortfolioData()
+      if (allPortfolioData && allPortfolioData[memberName]) {
+        return {
+          name: memberName,
+          photos: allPortfolioData[memberName].photos || []
+        }
+      }
+    }
+    
+    return null
   } catch (error) {
     console.error('Error loading portfolio data:', error)
+    
+    // Fallback to portfolio-data.js on error
+    if (typeof window !== 'undefined' && typeof (window as any).loadPortfolioData === 'function') {
+      try {
+        const allPortfolioData = (window as any).loadPortfolioData()
+        if (allPortfolioData && allPortfolioData[memberName]) {
+          return {
+            name: memberName,
+            photos: allPortfolioData[memberName].photos || []
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Error loading portfolio from fallback:', fallbackError)
+      }
+    }
+    
     return null
   }
 }
