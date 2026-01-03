@@ -213,22 +213,57 @@ async function convertAllPhotosToBase64() {
   console.log(`📁 Lokale map: ${localBasePath}`)
   console.log(`✅ Map gevonden!\n`)
 
-  // Fetch all portfolio photos that are not yet base64
-  const { data: allPhotos, error: fetchError } = await supabase
-    .from('portfolio_data')
-    .select('id, member_name, photo_data')
+  // Fetch only portfolio photos that are NOT yet base64 (to avoid timeout)
+  // We use a filter to only get photos where src doesn't start with 'data:image'
+  console.log('📥 Ophalen foto\'s uit database (alleen niet-base64)...')
+  
+  // First, get all IDs and check which ones need conversion
+  // We'll fetch in batches to avoid timeout
+  const batchSize = 100
+  let allPhotos: any[] = []
+  let offset = 0
+  let hasMore = true
 
-  if (fetchError) {
-    console.error('❌ Fout bij ophalen foto\'s:', fetchError.message)
-    process.exit(1)
+  while (hasMore) {
+    const { data: batch, error: fetchError } = await supabase
+      .from('portfolio_data')
+      .select('id, member_name, photo_data')
+      .range(offset, offset + batchSize - 1)
+
+    if (fetchError) {
+      console.error('❌ Fout bij ophalen foto\'s:', fetchError.message)
+      // Try to continue with what we have
+      break
+    }
+
+    if (!batch || batch.length === 0) {
+      hasMore = false
+      break
+    }
+
+    // Filter out already base64 photos
+    const nonBase64Photos = batch.filter((photo: any) => {
+      const src = photo.photo_data?.src
+      return src && !src.startsWith('data:image')
+    })
+
+    allPhotos = allPhotos.concat(nonBase64Photos)
+    
+    console.log(`   Batch ${Math.floor(offset / batchSize) + 1}: ${nonBase64Photos.length} foto's om te converteren (van ${batch.length} totaal)`)
+    
+    offset += batchSize
+    hasMore = batch.length === batchSize
+
+    // Small delay between batches
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
   if (!allPhotos || allPhotos.length === 0) {
-    console.log('⚠️  Geen foto\'s gevonden in database')
+    console.log('✅ Alle foto\'s zijn al base64! Geen conversie nodig.')
     return
   }
 
-  console.log(`📋 Gevonden ${allPhotos.length} foto's in database\n`)
+  console.log(`\n📋 Totaal ${allPhotos.length} foto's gevonden die geconverteerd moeten worden\n`)
 
   let converted = 0
   let skipped = 0
