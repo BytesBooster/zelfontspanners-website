@@ -93,6 +93,18 @@ export function HeroSlider() {
     loadRandomPhotos()
   }, [])
 
+  // Retry loading if no images (but only after initial load is complete)
+  useEffect(() => {
+    if (heroImages.length === 0 && !isLoading) {
+      const timer = setTimeout(() => {
+        console.log('[HeroSlider] Retrying to load photos...')
+        setIsLoading(true)
+        loadRandomPhotos()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [heroImages.length, isLoading])
+
   useEffect(() => {
     const displayImages = heroImages.filter(src => !failedImages.has(src))
     if (displayImages.length === 0) return
