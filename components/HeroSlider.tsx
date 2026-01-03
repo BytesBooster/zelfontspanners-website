@@ -14,6 +14,7 @@ export function HeroSlider() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
+  const [workingImages, setWorkingImages] = useState<string[]>([])
 
   // Load random portfolio photos from database
   useEffect(() => {
@@ -82,13 +83,14 @@ export function HeroSlider() {
   }, [])
 
   useEffect(() => {
-    if (heroImages.length === 0) return
+    const displayImages = heroImages.filter(src => !failedImages.has(src))
+    if (displayImages.length === 0) return
 
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length)
+      setCurrentSlide((prev) => (prev + 1) % displayImages.length)
     }, 5000)
     return () => clearInterval(interval)
-  }, [heroImages.length])
+  }, [heroImages.length, failedImages.size])
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index)
@@ -148,10 +150,36 @@ export function HeroSlider() {
     )
   }
 
+  // Filter to only show images that haven't failed
+  const displayImages = heroImages.filter(src => !failedImages.has(src))
+  
+  // If no working images, show gradient fallback
+  if (displayImages.length === 0 && !isLoading) {
+    return (
+      <section id="home" className="home-hero">
+        <div className="home-hero-slider" id="heroSlider">
+          <div className="hero-slide active" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'block'
+          }} />
+        </div>
+        <div className="home-hero-overlay"></div>
+        <div className="home-hero-content">
+          <h1 className="home-hero-title">De Zelfontspanners</h1>
+          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
+          <div className="home-hero-actions">
+            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
+            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section id="home" className="home-hero">
       <div className="home-hero-slider" id="heroSlider">
-        {heroImages.map((src, index) => (
+        {displayImages.map((src, index) => (
           <div
             key={`${src}-${index}`}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
@@ -198,7 +226,17 @@ export function HeroSlider() {
                 }}
                 onLoad={() => {
                   console.log('[HeroSlider] Image loaded successfully:', src)
-                  setLoadedImages(prev => new Set(prev).add(src))
+                  setLoadedImages(prev => {
+                    const newSet = new Set(prev).add(src)
+                    // Update working images list
+                    setWorkingImages(prev => {
+                      if (!prev.includes(src)) {
+                        return [...prev, src]
+                      }
+                      return prev
+                    })
+                    return newSet
+                  })
                 }}
               />
             )}
@@ -231,7 +269,7 @@ export function HeroSlider() {
         </button>
       </div>
       <div className="home-hero-dots" id="heroSliderDots">
-        {heroImages.map((_, index) => (
+        {displayImages.map((_, index) => (
           <button
             key={index}
             className={`hero-dot ${index === currentSlide ? 'active' : ''}`}
