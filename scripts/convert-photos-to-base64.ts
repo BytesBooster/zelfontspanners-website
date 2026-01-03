@@ -46,16 +46,39 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Function to read local file and convert to base64
-function readLocalFileAsBase64(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!fs.existsSync(filePath)) {
-        reject(new Error(`File not found: ${filePath}`))
-        return
-      }
+// Function to read local file, compress and convert to base64
+async function readLocalFileAsBase64(filePath: string, maxWidth: number = 1920, quality: number = 0.8): Promise<string> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`)
+    }
 
+    // Try to use sharp for compression (if available)
+    let sharp: any = null
+    try {
+      sharp = require('sharp')
+    } catch (e) {
+      // Sharp not available, use basic compression
+    }
+
+    if (sharp) {
+      // Use sharp for compression
+      const buffer = await sharp(filePath)
+        .resize(maxWidth, null, { withoutEnlargement: true })
+        .jpeg({ quality: Math.round(quality * 100) })
+        .toBuffer()
+      
+      const base64 = buffer.toString('base64')
+      return `data:image/jpeg;base64,${base64}`
+    } else {
+      // Fallback: read file without compression (but warn)
       const buffer = fs.readFileSync(filePath)
+      const fileSizeMB = (buffer.length / 1024 / 1024).toFixed(2)
+      
+      if (buffer.length > 5 * 1024 * 1024) { // > 5MB
+        console.log(`   ⚠️  Grote afbeelding (${fileSizeMB}MB) - overweeg sharp te installeren voor compressie`)
+      }
+      
       const base64 = buffer.toString('base64')
       const ext = path.extname(filePath).toLowerCase()
       const mimeTypes: Record<string, string> = {
@@ -71,12 +94,11 @@ function readLocalFileAsBase64(filePath: string): Promise<string> {
         '.WEBP': 'image/webp'
       }
       const contentType = mimeTypes[ext] || 'image/jpeg'
-      const dataUrl = `data:${contentType};base64,${base64}`
-      resolve(dataUrl)
-    } catch (error: any) {
-      reject(error)
+      return `data:${contentType};base64,${base64}`
     }
-  })
+  } catch (error: any) {
+    throw error
+  }
 }
 
 // Function to find local file matching database path
@@ -260,8 +282,8 @@ async function convertAllPhotosToBase64() {
         converted++
       }
 
-      // Small delay to avoid overwhelming
-      await new Promise(resolve => setTimeout(resolve, 50))
+      // Longer delay to avoid database timeout (especially for large images)
+      await new Promise(resolve => setTimeout(resolve, 200))
 
     } catch (error: any) {
       console.error(`   ❌ Fout:`, error.message)
