@@ -95,47 +95,51 @@ export function HeroSlider() {
     setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)
   }
 
-  // Show loading or fallback if no images
+  // Show loading state - keep trying to load images
   if (isLoading) {
     return (
       <section id="home" className="home-hero">
         <div className="home-hero-slider" id="heroSlider">
           <div className="hero-slide active" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: '#000000',
             display: 'block'
           }} />
         </div>
         <div className="home-hero-overlay"></div>
         <div className="home-hero-content">
           <h1 className="home-hero-title">De Zelfontspanners</h1>
-          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
-          <div className="home-hero-actions">
-            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
-            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
-          </div>
+          <p className="home-hero-subtitle">Laden...</p>
         </div>
       </section>
     )
   }
 
-  // If no images loaded, show gradient background
+  // Retry loading if no images
+  useEffect(() => {
+    if (heroImages.length === 0 && !isLoading) {
+      const timer = setTimeout(() => {
+        console.log('[HeroSlider] Retrying to load photos...')
+        setIsLoading(true)
+        loadRandomPhotos()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [heroImages.length, isLoading])
+
+  // If no images loaded, show black background (no gradient)
   if (heroImages.length === 0) {
     return (
       <section id="home" className="home-hero">
         <div className="home-hero-slider" id="heroSlider">
           <div className="hero-slide active" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: '#000000',
             display: 'block'
           }} />
         </div>
         <div className="home-hero-overlay"></div>
         <div className="home-hero-content">
           <h1 className="home-hero-title">De Zelfontspanners</h1>
-          <p className="home-hero-subtitle">Ontdek de kunst van fotografie samen met gelijkgestemden</p>
-          <div className="home-hero-actions">
-            <a href="/over-ons" className="btn btn-secondary">Meer Weten</a>
-            <a href="/leden" className="btn btn-secondary">Bekijk Leden</a>
-          </div>
+          <p className="home-hero-subtitle">Laden van portfolio foto's...</p>
         </div>
       </section>
     )
