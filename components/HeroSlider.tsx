@@ -33,12 +33,12 @@ export function HeroSlider() {
         
         console.log('[HeroSlider] Loaded photos from API:', photos.length)
         
-        // Extract image sources - handle both base64 and file paths
+        // Extract image sources - handle base64, URLs, and file paths
         const imageSrcs = photos
           .map(photo => {
             let src = photo.src
             
-            // If it's base64, use it directly
+            // If it's base64, use it directly (works everywhere)
             if (src && src.startsWith('data:image')) {
               console.log('[HeroSlider] Using base64 image')
               return src
@@ -50,27 +50,18 @@ export function HeroSlider() {
               return src
             }
             
-            // If it's a local path (images/portfolio/...), load from live server
-            if (src && !src.startsWith('/') && !src.startsWith('data:')) {
-              // In development, load from live server; in production, use relative path
-              if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
-                // Development mode - load from live server
-                const cleanSrc = src.startsWith('/') ? src.substring(1) : src
-                src = `https://zelfontspanners.nl/${cleanSrc}`
-                console.log('[HeroSlider] Development mode - using live server URL:', src)
-              } else {
-                // Production mode - use relative path (will load from same server)
-                src = src.startsWith('/') ? src : '/' + src
-                console.log('[HeroSlider] Production mode - using relative path:', src)
-              }
-            } else if (src && src.startsWith('/')) {
-              // Already has leading slash, use as is in production
-              if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
-                // Development mode - load from live server
-                const cleanSrc = src.substring(1) // Remove leading slash
-                src = `https://zelfontspanners.nl/${cleanSrc}`
-                console.log('[HeroSlider] Development mode - using live server URL:', src)
-              }
+            // Normalize the path (remove leading slash if present)
+            const cleanSrc = src.startsWith('/') ? src.substring(1) : src
+            
+            // In development, try to load from live server first
+            if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
+              // Development mode - load from live server
+              src = `https://zelfontspanners.nl/${cleanSrc}`
+              console.log('[HeroSlider] Development mode - using live server URL:', src)
+            } else {
+              // Production mode - use relative path (will load from same server)
+              src = `/${cleanSrc}`
+              console.log('[HeroSlider] Production mode - using relative path:', src)
             }
             
             return src
