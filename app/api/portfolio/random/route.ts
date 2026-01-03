@@ -18,11 +18,12 @@ export async function GET(request: NextRequest) {
     const hiddenSrcs = new Set((hiddenPhotos || []).map((h: any) => h.photo_src))
 
     // Fetch portfolio photos in batches to avoid timeout
-    // We'll filter for base64 images client-side since Supabase doesn't support JSONB path filtering well
+    // Filter for base64 images using Supabase JSONB query
     const batchSize = 500
     let allPhotos: any[] = []
     let offset = 0
     let hasMore = true
+    let totalChecked = 0
 
     while (hasMore && allPhotos.length < count * 3) { // Fetch 3x more than needed for randomization
       const { data: batch, error: photosError } = await supabase
@@ -40,6 +41,8 @@ export async function GET(request: NextRequest) {
         break
       }
 
+      totalChecked += batch.length
+
       // Filter for base64 images only and exclude hidden photos
       const base64Photos = batch
         .map((p: any) => p.photo_data)
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
           if (!photo || !photo.src) return false
           // Only include base64 images (from database)
           if (!photo.src.startsWith('data:image')) return false
-          // Skip hidden photos
+          // Skip hidden photos (check by src)
           if (hiddenSrcs.has(photo.src)) return false
           return true
         })
@@ -56,11 +59,15 @@ export async function GET(request: NextRequest) {
       offset += batchSize
       hasMore = batch.length === batchSize
 
+      console.log(`[API] Checked ${totalChecked} photos, found ${allPhotos.length} base64 photos so far`)
+
       // If we have enough photos, stop fetching
       if (allPhotos.length >= count * 2) {
         break
       }
     }
+
+    console.log(`[API] Total checked: ${totalChecked}, Total base64 found: ${allPhotos.length}`)
 
     // Shuffle and take random photos
     const shuffled = [...allPhotos].sort(() => Math.random() - 0.5)
