@@ -8,16 +8,16 @@ Write-Host ""
 
 # Check of .env.local al bestaat
 if (Test-Path ".env.local") {
-    Write-Host "⚠️  .env.local bestaat al!" -ForegroundColor Yellow
+    Write-Host "[WAARSCHUWING] .env.local bestaat al!" -ForegroundColor Yellow
     $overwrite = Read-Host "Overschrijven? (j/n)"
     if ($overwrite -ne "j") {
-        Write-Host "❌ Setup geannuleerd" -ForegroundColor Red
+        Write-Host "[ERROR] Setup geannuleerd" -ForegroundColor Red
         exit
     }
 }
 
 # Maak .env.local bestand
-Write-Host "📝 Maken van .env.local bestand..." -ForegroundColor Green
+Write-Host "[INFO] Maken van .env.local bestand..." -ForegroundColor Green
 
 $envContent = @"
 # Environment Variables voor Lokale Development
@@ -36,16 +36,16 @@ CLOUDINARY_API_SECRET=jEZWkfFP9CTxvcqHdbuBgaL9tS0
 PORT=3000
 "@
 
-$envContent | Out-File -FilePath ".env.local" -Encoding utf8
-Write-Host "✅ .env.local aangemaakt" -ForegroundColor Green
+$envContent | Set-Content -Path ".env.local" -Encoding UTF8
+Write-Host "[OK] .env.local aangemaakt" -ForegroundColor Green
 
 # Vind IP adres
 Write-Host ""
-Write-Host "🔍 Zoeken naar IP-adres..." -ForegroundColor Green
+Write-Host "[INFO] Zoeken naar IP-adres..." -ForegroundColor Green
 $ipAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -notlike "*Loopback*" -and $_.IPAddress -notlike "169.254.*"}).IPAddress | Select-Object -First 1
 
 if ($ipAddress) {
-    Write-Host "✅ IP-adres gevonden: $ipAddress" -ForegroundColor Green
+    Write-Host "[OK] IP-adres gevonden: $ipAddress" -ForegroundColor Green
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host "Setup Voltooid!" -ForegroundColor Green
@@ -60,7 +60,7 @@ if ($ipAddress) {
     Write-Host ""
     Write-Host "Voor meer informatie, zie LOCAL-DEVELOPMENT-SETUP.md" -ForegroundColor Cyan
 } else {
-    Write-Host "⚠️  Kon IP-adres niet vinden" -ForegroundColor Yellow
+    Write-Host "[WAARSCHUWING] Kon IP-adres niet vinden" -ForegroundColor Yellow
     Write-Host "Start development server met: npm run dev:network" -ForegroundColor Yellow
     Write-Host "Check je IP-adres met: ipconfig" -ForegroundColor Yellow
 }
