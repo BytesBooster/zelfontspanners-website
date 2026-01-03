@@ -1,0 +1,250 @@
+/**
+ * Script om alle portfolio foto's te converteren naar base64 en op te slaan in de database
+ * 
+ * Dit script:
+ * 1. Leest alle foto's uit de database die nog relative_path zijn
+ * 2. Laadt de foto's van de server (of lokaal)
+ * 3. Converteert ze naar base64
+ * 4. Update de database met de base64 data
+ * 
+ * Gebruik:
+ * 1. Zorg dat NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_ANON_KEY zijn ingesteld
+ * 2. Run: npx tsx scripts/convert-photos-to-base64.ts
+ */
+
+import { createClient } from '@supabase/supabase-js'
+import * as fs from 'fs'
+import * as path from 'path'
+import dotenv from 'dotenv'
+import https from 'https'
+import http from 'http'
+
+// Load environment variables
+const envPath = path.join(process.cwd(), '.env.local')
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+  console.log('✅ .env.local geladen')
+} else {
+  const envFallback = path.join(process.cwd(), '.env')
+  if (fs.existsSync(envFallback)) {
+    dotenv.config({ path: envFallback })
+    console.log('✅ .env geladen')
+  }
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_ANON_KEY moeten zijn ingesteld!')
+  process.exit(1)
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+// Function to download image from URL and convert to base64
+function downloadImageAsBase64(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http
+    
+    protocol.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download image: ${response.statusCode}`))
+        return
+      }
+
+      const chunks: Buffer[] = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => {
+        const buffer = Buffer.concat(chunks)
+        const base64 = buffer.toString('base64')
+        const contentType = response.headers['content-type'] || 'image/jpeg'
+        const dataUrl = `data:${contentType};base64,${base64}`
+        resolve(dataUrl)
+      })
+    }).on('error', reject)
+  })
+}
+
+// Function to read local file and convert to base64
+function readLocalFileAsBase64(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        reject(new Error(`File not found: ${filePath}`))
+        return
+      }
+
+      const buffer = fs.readFileSync(filePath)
+      const base64 = buffer.toString('base64')
+      const ext = path.extname(filePath).toLowerCase()
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+      }
+      const contentType = mimeTypes[ext] || 'image/jpeg'
+      const dataUrl = `data:${contentType};base64,${base64}`
+      resolve(dataUrl)
+    } catch (error: any) {
+      reject(error)
+    }
+  })
+}
+
+// Function to convert image path to base64
+async function convertImageToBase64(src: string, basePath: string = ''): Promise<string | null> {
+  try {
+    // If already base64, return as is
+    if (src.startsWith('data:image')) {
+      return src
+    }
+
+    // If it's a full URL, download it
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      console.log(`   📥 Downloading from URL: ${src}`)
+      return await downloadImageAsBase64(src)
+    }
+
+    // If it's a relative path, try to read from local filesystem or server
+    let filePath = src
+    
+    // Remove leading slash if present
+    if (filePath.startsWith('/')) {
+      filePath = filePath.substring(1)
+    }
+
+    // Try local path first (for development)
+    const localPath = path.join(process.cwd(), 'public', filePath)
+    if (fs.existsSync(localPath)) {
+      console.log(`   📁 Reading local file: ${localPath}`)
+      return await readLocalFileAsBase64(localPath)
+    }
+
+    // Try with basePath if provided
+    if (basePath) {
+      const basePathFile = path.join(basePath, filePath)
+      if (fs.existsSync(basePathFile)) {
+        console.log(`   📁 Reading from basePath: ${basePathFile}`)
+        return await readLocalFileAsBase64(basePathFile)
+      }
+    }
+
+    // Try to download from live server
+    const liveServerUrl = `https://zelfontspanners.nl/${filePath}`
+    console.log(`   🌐 Trying live server: ${liveServerUrl}`)
+    try {
+      return await downloadImageAsBase64(liveServerUrl)
+    } catch (error) {
+      console.log(`   ⚠️  Failed to download from live server: ${liveServerUrl}`)
+      return null
+    }
+  } catch (error: any) {
+    console.error(`   ❌ Error converting image ${src}:`, error.message)
+    return null
+  }
+}
+
+async function convertAllPhotosToBase64() {
+  console.log('🚀 Start conversie van foto\'s naar base64...\n')
+
+  // Fetch all portfolio photos that are not yet base64
+  const { data: allPhotos, error: fetchError } = await supabase
+    .from('portfolio_data')
+    .select('id, member_name, photo_data')
+
+  if (fetchError) {
+    console.error('❌ Fout bij ophalen foto\'s:', fetchError.message)
+    process.exit(1)
+  }
+
+  if (!allPhotos || allPhotos.length === 0) {
+    console.log('⚠️  Geen foto\'s gevonden in database')
+    return
+  }
+
+  console.log(`📋 Gevonden ${allPhotos.length} foto's in database\n`)
+
+  let converted = 0
+  let skipped = 0
+  let errors = 0
+  let alreadyBase64 = 0
+
+  for (const photo of allPhotos) {
+    const photoData = photo.photo_data as any
+    const src = photoData?.src
+
+    if (!src) {
+      console.log(`⏭️  Foto ID ${photo.id}: Geen src gevonden, overslaan`)
+      skipped++
+      continue
+    }
+
+    // Check if already base64
+    if (src.startsWith('data:image')) {
+      console.log(`✅ Foto ID ${photo.id} (${photo.member_name}): Al base64`)
+      alreadyBase64++
+      continue
+    }
+
+    console.log(`🔄 Foto ID ${photo.id} (${photo.member_name}): ${src.substring(0, 50)}...`)
+
+    try {
+      const base64Src = await convertImageToBase64(src)
+
+      if (!base64Src) {
+        console.log(`   ⚠️  Kon foto niet converteren, overslaan`)
+        skipped++
+        continue
+      }
+
+      // Update photo_data with base64 src
+      const updatedPhotoData = {
+        ...photoData,
+        src: base64Src
+      }
+
+      const { error: updateError } = await supabase
+        .from('portfolio_data')
+        .update({ photo_data: updatedPhotoData })
+        .eq('id', photo.id)
+
+      if (updateError) {
+        console.error(`   ❌ Fout bij updaten:`, updateError.message)
+        errors++
+      } else {
+        console.log(`   ✅ Geconverteerd naar base64`)
+        converted++
+      }
+
+      // Small delay to avoid overwhelming the server
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+    } catch (error: any) {
+      console.error(`   ❌ Fout:`, error.message)
+      errors++
+    }
+  }
+
+  console.log('\n📊 Conversie samenvatting:')
+  console.log(`   Totaal foto's: ${allPhotos.length}`)
+  console.log(`   Geconverteerd: ${converted}`)
+  console.log(`   Al base64: ${alreadyBase64}`)
+  console.log(`   Overgeslagen: ${skipped}`)
+  console.log(`   Fouten: ${errors}`)
+  
+  if (errors === 0 && skipped === 0) {
+    console.log('\n✅ Conversie succesvol voltooid!')
+  } else {
+    console.log(`\n⚠️  Conversie voltooid met ${errors} fouten en ${skipped} overgeslagen foto's`)
+  }
+}
+
+// Run conversion
+convertAllPhotosToBase64().catch((error) => {
+  console.error('❌ Kritieke fout:', error)
+  process.exit(1)
+})
+
