@@ -75,7 +75,35 @@ function downloadImageAsBase64(url: string): Promise<string> {
 
 // Deze functie wordt niet meer gebruikt - we downloaden alles van de live server
 
-// Function to convert image path to base64 - ALLEEN van live server!
+// Function to read local file and convert to base64
+function readLocalFileAsBase64(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        reject(new Error(`File not found: ${filePath}`))
+        return
+      }
+
+      const buffer = fs.readFileSync(filePath)
+      const base64 = buffer.toString('base64')
+      const ext = path.extname(filePath).toLowerCase()
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+      }
+      const contentType = mimeTypes[ext] || 'image/jpeg'
+      const dataUrl = `data:${contentType};base64,${base64}`
+      resolve(dataUrl)
+    } catch (error: any) {
+      reject(error)
+    }
+  })
+}
+
+// Function to convert image path to base64 - probeer eerst server, dan lokaal
 async function convertImageToBase64(src: string): Promise<string | null> {
   try {
     // If already base64, return as is
@@ -89,7 +117,7 @@ async function convertImageToBase64(src: string): Promise<string | null> {
       return await downloadImageAsBase64(src)
     }
 
-    // For relative paths, download ALTIJD van live server (geen lokale bestanden!)
+    // For relative paths, probeer eerst server, dan lokaal
     let filePath = src
     
     // Remove leading slash if present
@@ -97,15 +125,28 @@ async function convertImageToBase64(src: string): Promise<string | null> {
       filePath = filePath.substring(1)
     }
 
-    // Download ALTIJD van live server - geen lokale bestanden gebruiken!
+    // Probeer eerst van live server
     const liveServerUrl = `https://zelfontspanners.nl/${filePath}`
-    console.log(`   🌐 Downloading van live server: ${liveServerUrl}`)
+    console.log(`   🌐 Probeer live server: ${liveServerUrl}`)
     try {
       return await downloadImageAsBase64(liveServerUrl)
     } catch (error: any) {
-      console.log(`   ⚠️  Kon niet downloaden van live server: ${liveServerUrl}`)
-      console.log(`   Fout: ${error.message}`)
-      return null
+      console.log(`   ⚠️  Server 404, probeer lokaal...`)
+      
+      // Als server faalt, probeer lokaal bestand
+      const localPath = path.join(process.cwd(), 'public', filePath)
+      if (fs.existsSync(localPath)) {
+        console.log(`   📁 Gevonden lokaal: ${localPath}`)
+        try {
+          return await readLocalFileAsBase64(localPath)
+        } catch (localError: any) {
+          console.log(`   ❌ Kon lokaal bestand niet lezen: ${localError.message}`)
+          return null
+        }
+      } else {
+        console.log(`   ❌ Bestand niet gevonden (noch server, noch lokaal): ${filePath}`)
+        return null
+      }
     }
   } catch (error: any) {
     console.error(`   ❌ Fout bij converteren image ${src}:`, error.message)
