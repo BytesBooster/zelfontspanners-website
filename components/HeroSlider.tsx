@@ -34,49 +34,31 @@ export function HeroSlider() {
         
         console.log('[HeroSlider] Loaded photos from API:', photos.length)
         
-        // Extract image sources - prioritize base64 images (from database)
+        // Extract image sources - API now returns only base64 images from database
         const imageSrcs = photos
           .map(photo => {
-            let src = photo.src
+            const src = photo.src
             
-            // If it's base64, use it directly (works everywhere - no server files needed!)
+            // API should only return base64 images now
             if (src && src.startsWith('data:image')) {
-              console.log('[HeroSlider] Using base64 image (from database)')
               return src
             }
             
-            // If it's already a full URL, use it directly
+            // Fallback for any non-base64 images (shouldn't happen, but just in case)
             if (src && src.startsWith('http')) {
-              console.log('[HeroSlider] Using full URL:', src)
+              console.log('[HeroSlider] Warning: Received non-base64 URL:', src)
               return src
             }
             
-            // For relative paths, we need to load from server
-            // But ideally all photos should be base64 in the database
-            const cleanSrc = src.startsWith('/') ? src.substring(1) : src
-            
-            // In development, try to load from live server first
-            if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
-              // Development mode - load from live server
-              src = `https://zelfontspanners.nl/${cleanSrc}`
-              console.log('[HeroSlider] Development mode - using live server URL:', src)
-            } else {
-              // Production mode - use relative path (will load from same server)
-              src = `/${cleanSrc}`
-              console.log('[HeroSlider] Production mode - using relative path:', src)
+            // Skip relative paths (these shouldn't be returned by API anymore)
+            if (src && !src.startsWith('data:image') && !src.startsWith('http')) {
+              console.log('[HeroSlider] Warning: Skipping relative path (should be base64):', src)
+              return null
             }
             
             return src
           })
-          .filter(Boolean)
-          // Prioritize base64 images - they don't need server files
-          .sort((a, b) => {
-            const aIsBase64 = a.startsWith('data:image')
-            const bIsBase64 = b.startsWith('data:image')
-            if (aIsBase64 && !bIsBase64) return -1
-            if (!aIsBase64 && bIsBase64) return 1
-            return 0
-          })
+          .filter(Boolean) as string[]
         
         console.log('[HeroSlider] Final image sources:', imageSrcs)
         setHeroImages(imageSrcs)
