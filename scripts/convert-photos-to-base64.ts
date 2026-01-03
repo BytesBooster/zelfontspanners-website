@@ -17,8 +17,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import * as fs from 'fs'
-import * as path from 'path'
 import dotenv from 'dotenv'
 import https from 'https'
 import http from 'http'
@@ -75,35 +73,7 @@ function downloadImageAsBase64(url: string): Promise<string> {
 
 // Deze functie wordt niet meer gebruikt - we downloaden alles van de live server
 
-// Function to read local file and convert to base64
-function readLocalFileAsBase64(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!fs.existsSync(filePath)) {
-        reject(new Error(`File not found: ${filePath}`))
-        return
-      }
-
-      const buffer = fs.readFileSync(filePath)
-      const base64 = buffer.toString('base64')
-      const ext = path.extname(filePath).toLowerCase()
-      const mimeTypes: Record<string, string> = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp'
-      }
-      const contentType = mimeTypes[ext] || 'image/jpeg'
-      const dataUrl = `data:${contentType};base64,${base64}`
-      resolve(dataUrl)
-    } catch (error: any) {
-      reject(error)
-    }
-  })
-}
-
-// Function to convert image path to base64 - probeer eerst server, dan lokaal
+// Function to convert image path to base64 - ALLEEN van live server!
 async function convertImageToBase64(src: string): Promise<string | null> {
   try {
     // If already base64, return as is
@@ -117,7 +87,7 @@ async function convertImageToBase64(src: string): Promise<string | null> {
       return await downloadImageAsBase64(src)
     }
 
-    // For relative paths, probeer eerst server, dan lokaal
+    // For relative paths, download ALLEEN van live server
     let filePath = src
     
     // Remove leading slash if present
@@ -125,28 +95,15 @@ async function convertImageToBase64(src: string): Promise<string | null> {
       filePath = filePath.substring(1)
     }
 
-    // Probeer eerst van live server
+    // Download ALLEEN van live server - geen lokale bestanden!
     const liveServerUrl = `https://zelfontspanners.nl/${filePath}`
-    console.log(`   🌐 Probeer live server: ${liveServerUrl}`)
+    console.log(`   🌐 Downloading van live server: ${liveServerUrl}`)
     try {
       return await downloadImageAsBase64(liveServerUrl)
     } catch (error: any) {
-      console.log(`   ⚠️  Server 404, probeer lokaal...`)
-      
-      // Als server faalt, probeer lokaal bestand
-      const localPath = path.join(process.cwd(), 'public', filePath)
-      if (fs.existsSync(localPath)) {
-        console.log(`   📁 Gevonden lokaal: ${localPath}`)
-        try {
-          return await readLocalFileAsBase64(localPath)
-        } catch (localError: any) {
-          console.log(`   ❌ Kon lokaal bestand niet lezen: ${localError.message}`)
-          return null
-        }
-      } else {
-        console.log(`   ❌ Bestand niet gevonden (noch server, noch lokaal): ${filePath}`)
-        return null
-      }
+      console.log(`   ❌ Bestand niet gevonden op server: ${filePath}`)
+      console.log(`   ⚠️  Upload dit bestand eerst naar de server voordat je converteert!`)
+      return null
     }
   } catch (error: any) {
     console.error(`   ❌ Fout bij converteren image ${src}:`, error.message)
