@@ -56,7 +56,7 @@ if ($ipAddress) {
     Write-Host ""
     Write-Host "Toegankelijk op:" -ForegroundColor Yellow
     Write-Host "  - Lokaal: http://localhost:3000" -ForegroundColor White
-    Write-Host "  - Netwerk: http://$ipAddress:3000" -ForegroundColor White
+    Write-Host ("  - Netwerk: http://" + $ipAddress + ":3000") -ForegroundColor White
     Write-Host ""
     Write-Host "Voor meer informatie, zie LOCAL-DEVELOPMENT-SETUP.md" -ForegroundColor Cyan
 } else {
