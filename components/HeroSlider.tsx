@@ -20,7 +20,7 @@ export function HeroSlider() {
       try {
         const response = await fetch('/api/portfolio/random?count=10')
         if (!response.ok) {
-          console.error('Error loading random photos:', response.statusText)
+          console.error('[HeroSlider] Error loading random photos:', response.statusText)
           // Fallback to empty array
           setHeroImages([])
           setIsLoading(false)
@@ -30,6 +30,8 @@ export function HeroSlider() {
         const data = await response.json()
         const photos: PortfolioPhoto[] = data.photos || []
         
+        console.log('[HeroSlider] Loaded photos from API:', photos.length)
+        
         // Extract image sources and ensure they load from server, not local
         const imageSrcs = photos
           .map(photo => {
@@ -37,18 +39,22 @@ export function HeroSlider() {
             // If it's a local path (images/portfolio/...), load from live server
             if (src && !src.startsWith('http') && !src.startsWith('data:')) {
               // In development, load from live server; in production, use relative path
-              if (typeof window !== 'undefined' && window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
+              if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
                 // Development mode - load from live server
-                src = `https://zelfontspanners.nl/${src.startsWith('/') ? src.substring(1) : src}`
+                const cleanSrc = src.startsWith('/') ? src.substring(1) : src
+                src = `https://zelfontspanners.nl/${cleanSrc}`
+                console.log('[HeroSlider] Development mode - using live server URL:', src)
               } else {
                 // Production mode - use relative path (will load from same server)
                 src = src.startsWith('/') ? src : '/' + src
+                console.log('[HeroSlider] Production mode - using relative path:', src)
               }
             }
             return src
           })
           .filter(Boolean)
         
+        console.log('[HeroSlider] Final image sources:', imageSrcs)
         setHeroImages(imageSrcs)
       } catch (error) {
         console.error('Error loading random portfolio photos:', error)
@@ -143,6 +149,13 @@ export function HeroSlider() {
               fill
               style={{ objectFit: 'cover' }}
               priority={index === 0}
+              unoptimized
+              onError={(e) => {
+                console.error('[HeroSlider] Error loading image:', src, e)
+              }}
+              onLoad={() => {
+                console.log('[HeroSlider] Image loaded successfully:', src)
+              }}
             />
           </div>
         ))}
