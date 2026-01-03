@@ -34,14 +34,14 @@ export function HeroSlider() {
         
         console.log('[HeroSlider] Loaded photos from API:', photos.length)
         
-        // Extract image sources - handle base64, URLs, and file paths
+        // Extract image sources - prioritize base64 images (from database)
         const imageSrcs = photos
           .map(photo => {
             let src = photo.src
             
-            // If it's base64, use it directly (works everywhere)
+            // If it's base64, use it directly (works everywhere - no server files needed!)
             if (src && src.startsWith('data:image')) {
-              console.log('[HeroSlider] Using base64 image')
+              console.log('[HeroSlider] Using base64 image (from database)')
               return src
             }
             
@@ -51,7 +51,8 @@ export function HeroSlider() {
               return src
             }
             
-            // Normalize the path (remove leading slash if present)
+            // For relative paths, we need to load from server
+            // But ideally all photos should be base64 in the database
             const cleanSrc = src.startsWith('/') ? src.substring(1) : src
             
             // In development, try to load from live server first
@@ -68,6 +69,14 @@ export function HeroSlider() {
             return src
           })
           .filter(Boolean)
+          // Prioritize base64 images - they don't need server files
+          .sort((a, b) => {
+            const aIsBase64 = a.startsWith('data:image')
+            const bIsBase64 = b.startsWith('data:image')
+            if (aIsBase64 && !bIsBase64) return -1
+            if (!aIsBase64 && bIsBase64) return 1
+            return 0
+          })
         
         console.log('[HeroSlider] Final image sources:', imageSrcs)
         setHeroImages(imageSrcs)
