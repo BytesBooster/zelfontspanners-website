@@ -30,13 +30,20 @@ export function HeroSlider() {
         const data = await response.json()
         const photos: PortfolioPhoto[] = data.photos || []
         
-        // Extract image sources and ensure they start with /
+        // Extract image sources and ensure they load from server, not local
         const imageSrcs = photos
           .map(photo => {
             let src = photo.src
-            // Ensure path starts with /
-            if (src && !src.startsWith('/') && !src.startsWith('http')) {
-              src = '/' + src
+            // If it's a local path (images/portfolio/...), load from live server
+            if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+              // In development, load from live server; in production, use relative path
+              if (typeof window !== 'undefined' && window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
+                // Development mode - load from live server
+                src = `https://zelfontspanners.nl/${src.startsWith('/') ? src.substring(1) : src}`
+              } else {
+                // Production mode - use relative path (will load from same server)
+                src = src.startsWith('/') ? src : '/' + src
+              }
             }
             return src
           })
