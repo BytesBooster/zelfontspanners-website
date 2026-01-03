@@ -12,6 +12,8 @@ export function HeroSlider() {
   const [heroImages, setHeroImages] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   // Load random portfolio photos from database
   useEffect(() => {
@@ -140,29 +142,53 @@ export function HeroSlider() {
           <div
             key={`${src}-${index}`}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-            style={{ display: index === currentSlide ? 'block' : 'none' }}
+            style={{ 
+              display: index === currentSlide ? 'block' : 'none',
+              position: 'relative',
+              width: '100%',
+              height: '100%'
+            }}
           >
-            <img
-              src={src}
-              alt={`Hero slide ${index + 1}`}
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'cover',
-                display: 'block'
-              }}
-              onError={(e) => {
-                console.error('[HeroSlider] Error loading image:', src, e)
-                // Hide broken image
-                const target = e.target as HTMLImageElement
-                if (target) {
-                  target.style.display = 'none'
-                }
-              }}
-              onLoad={() => {
-                console.log('[HeroSlider] Image loaded successfully:', src)
-              }}
-            />
+            {failedImages.has(src) ? (
+              // Show gradient fallback if image failed to load
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <span style={{ color: 'white', opacity: 0.7 }}>Foto niet beschikbaar</span>
+              </div>
+            ) : (
+              <img
+                src={src}
+                alt={`Hero slide ${index + 1}`}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0
+                }}
+                onError={(e) => {
+                  console.error('[HeroSlider] Error loading image:', src)
+                  setFailedImages(prev => new Set(prev).add(src))
+                  // Hide broken image
+                  const target = e.target as HTMLImageElement
+                  if (target) {
+                    target.style.display = 'none'
+                  }
+                }}
+                onLoad={() => {
+                  console.log('[HeroSlider] Image loaded successfully:', src)
+                  setLoadedImages(prev => new Set(prev).add(src))
+                }}
+              />
+            )}
           </div>
         ))}
       </div>
