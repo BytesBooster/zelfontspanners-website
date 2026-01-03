@@ -213,26 +213,24 @@ async function convertAllPhotosToBase64() {
   console.log(`📁 Lokale map: ${localBasePath}`)
   console.log(`✅ Map gevonden!\n`)
 
-  // Fetch only portfolio photos that are NOT yet base64 (to avoid timeout)
-  // We use a filter to only get photos where src doesn't start with 'data:image'
-  console.log('📥 Ophalen foto\'s uit database (alleen niet-base64)...')
+  // Fetch only IDs first (without photo_data to avoid timeout)
+  // Then check each photo individually
+  console.log('📥 Ophalen foto IDs uit database...')
   
-  // First, get all IDs and check which ones need conversion
-  // We'll fetch in batches to avoid timeout
-  const batchSize = 100
-  let allPhotos: any[] = []
+  // First, get only IDs and member_name (without photo_data)
+  const batchSize = 200
+  let allPhotoIds: Array<{id: number, member_name: string}> = []
   let offset = 0
   let hasMore = true
 
   while (hasMore) {
     const { data: batch, error: fetchError } = await supabase
       .from('portfolio_data')
-      .select('id, member_name, photo_data')
+      .select('id, member_name')
       .range(offset, offset + batchSize - 1)
 
     if (fetchError) {
-      console.error('❌ Fout bij ophalen foto\'s:', fetchError.message)
-      // Try to continue with what we have
+      console.error('❌ Fout bij ophalen foto IDs:', fetchError.message)
       break
     }
 
@@ -241,21 +239,48 @@ async function convertAllPhotosToBase64() {
       break
     }
 
-    // Filter out already base64 photos
-    const nonBase64Photos = batch.filter((photo: any) => {
-      const src = photo.photo_data?.src
-      return src && !src.startsWith('data:image')
-    })
-
-    allPhotos = allPhotos.concat(nonBase64Photos)
-    
-    console.log(`   Batch ${Math.floor(offset / batchSize) + 1}: ${nonBase64Photos.length} foto's om te converteren (van ${batch.length} totaal)`)
+    allPhotoIds = allPhotoIds.concat(batch)
+    console.log(`   Batch ${Math.floor(offset / batchSize) + 1}: ${batch.length} IDs opgehaald`)
     
     offset += batchSize
     hasMore = batch.length === batchSize
 
     // Small delay between batches
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  console.log(`\n📋 Totaal ${allPhotoIds.length} foto IDs gevonden\n`)
+  console.log('🔍 Controleren welke foto\'s geconverteerd moeten worden...\n')
+
+  // Now check each photo individually to see if it needs conversion
+  let allPhotos: any[] = []
+  let checked = 0
+
+  for (const photoId of allPhotoIds) {
+    checked++
+    if (checked % 50 === 0) {
+      console.log(`   Gecontroleerd: ${checked}/${allPhotoIds.length}...`)
+    }
+
+    const { data: photo, error } = await supabase
+      .from('portfolio_data')
+      .select('id, member_name, photo_data')
+      .eq('id', photoId.id)
+      .single()
+
+    if (error || !photo) {
+      continue
+    }
+
+    const src = photo.photo_data?.src
+    if (src && !src.startsWith('data:image')) {
+      allPhotos.push(photo)
+    }
+
+    // Small delay to avoid overwhelming the database
+    if (checked % 10 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
   }
 
   if (!allPhotos || allPhotos.length === 0) {
