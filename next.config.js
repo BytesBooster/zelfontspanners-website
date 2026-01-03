@@ -4,6 +4,14 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: true,
+    // Allow images from live server during development
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'zelfontspanners.nl',
+        pathname: '/images/**',
+      },
+    ],
   },
   // Disable static optimization for pages that use localStorage
   experimental: {
