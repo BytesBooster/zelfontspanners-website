@@ -45,13 +45,36 @@ export async function GET(request: NextRequest) {
 
       // Filter for base64 images only and exclude hidden photos
       const base64Photos = batch
-        .map((p: any) => p.photo_data)
+        .map((p: any) => {
+          // Debug: log first photo structure
+          if (totalChecked === batch.length && p.photo_data) {
+            console.log('[API] Sample photo_data structure:', {
+              hasPhotoData: !!p.photo_data,
+              hasSrc: !!p.photo_data.src,
+              srcType: p.photo_data.src ? (p.photo_data.src.startsWith('data:image') ? 'base64' : 'other') : 'none',
+              srcPreview: p.photo_data.src ? p.photo_data.src.substring(0, 50) + '...' : 'none'
+            })
+          }
+          return p.photo_data
+        })
         .filter((photo: any) => {
-          if (!photo || !photo.src) return false
+          if (!photo || !photo.src) {
+            if (totalChecked <= 5) {
+              console.log('[API] Filtered out photo (no src):', photo)
+            }
+            return false
+          }
           // Only include base64 images (from database)
-          if (!photo.src.startsWith('data:image')) return false
+          if (!photo.src.startsWith('data:image')) {
+            if (totalChecked <= 5) {
+              console.log('[API] Filtered out photo (not base64):', photo.src.substring(0, 50))
+            }
+            return false
+          }
           // Skip hidden photos (check by src)
-          if (hiddenSrcs.has(photo.src)) return false
+          if (hiddenSrcs.has(photo.src)) {
+            return false
+          }
           return true
         })
 
