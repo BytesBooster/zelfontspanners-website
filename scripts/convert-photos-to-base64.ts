@@ -17,12 +17,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import * as fs from 'fs'
+import * as path from 'path'
 import dotenv from 'dotenv'
-import https from 'https'
-import http from 'http'
 
-// BELANGRIJK: Dit script download ALLE foto's van de live server
-// Geen lokale bestanden worden gebruikt - alles komt uit de database en wordt naar base64 geconverteerd
+// BELANGRIJK: Dit script leest lokale foto's en converteert ze naar base64 in de database
 
 // Load environment variables
 const envPath = path.join(process.cwd(), '.env.local')
