@@ -47,62 +47,127 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Function to download image from URL and convert to base64
-function downloadImageAsBase64(url: string): Promise<string> {
+// Function to read local file and convert to base64
+function readLocalFileAsBase64(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const protocol = url.startsWith('https') ? https : http
-    
-    protocol.get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download image: ${response.statusCode}`))
+    try {
+      if (!fs.existsSync(filePath)) {
+        reject(new Error(`File not found: ${filePath}`))
         return
       }
 
-      const chunks: Buffer[] = []
-      response.on('data', (chunk) => chunks.push(chunk))
-      response.on('end', () => {
-        const buffer = Buffer.concat(chunks)
-        const base64 = buffer.toString('base64')
-        const contentType = response.headers['content-type'] || 'image/jpeg'
-        const dataUrl = `data:${contentType};base64,${base64}`
-        resolve(dataUrl)
-      })
-    }).on('error', reject)
+      const buffer = fs.readFileSync(filePath)
+      const base64 = buffer.toString('base64')
+      const ext = path.extname(filePath).toLowerCase()
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.JPG': 'image/jpeg',
+        '.JPEG': 'image/jpeg',
+        '.PNG': 'image/png',
+        '.GIF': 'image/gif',
+        '.WEBP': 'image/webp'
+      }
+      const contentType = mimeTypes[ext] || 'image/jpeg'
+      const dataUrl = `data:${contentType};base64,${base64}`
+      resolve(dataUrl)
+    } catch (error: any) {
+      reject(error)
+    }
   })
+}
+
+// Function to find local file matching database path
+function findLocalFile(dbPath: string, localBasePath: string): string | null {
+  // Convert database path to local file path
+  // Database path: images/portfolio/willeke-buijssen/PB192436.JPG
+  // Local path should be: C:\Users\jrdhn\Desktop\zelfontspanners-statische-fotos\images\portfolio\willeke-buijssen\PB192436.JPG
+  
+  // Remove leading slash if present
+  let cleanPath = dbPath.startsWith('/') ? dbPath.substring(1) : dbPath
+  
+  // Try exact match first
+  const exactPath = path.join(localBasePath, cleanPath)
+  if (fs.existsSync(exactPath)) {
+    return exactPath
+  }
+  
+  // Try with different path separators
+  const normalizedPath = cleanPath.replace(/\//g, path.sep)
+  const normalizedFullPath = path.join(localBasePath, normalizedPath)
+  if (fs.existsSync(normalizedFullPath)) {
+    return normalizedFullPath
+  }
+  
+  // Try to find file by filename only (search recursively)
+  const fileName = path.basename(cleanPath)
+  try {
+    const found = findFileRecursive(localBasePath, fileName)
+    if (found) {
+      return found
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  
+  return null
+}
+
+// Recursive function to find file by name
+function findFileRecursive(dir: string, fileName: string): string | null {
+  try {
+    const files = fs.readdirSync(dir)
+    
+    for (const file of files) {
+      const fullPath = path.join(dir, file)
+      const stat = fs.statSync(fullPath)
+      
+      if (stat.isDirectory()) {
+        const found = findFileRecursive(fullPath, fileName)
+        if (found) return found
+      } else if (file === fileName || file.toLowerCase() === fileName.toLowerCase()) {
+        return fullPath
+      }
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  
+  return null
 }
 
 // Deze functie wordt niet meer gebruikt - we downloaden alles van de live server
 
-// Function to convert image path to base64 - ALLEEN van live server!
-async function convertImageToBase64(src: string): Promise<string | null> {
+// Function to convert image path to base64 - leest van lokale bestanden!
+async function convertImageToBase64(src: string, localBasePath: string): Promise<string | null> {
   try {
     // If already base64, return as is
     if (src.startsWith('data:image')) {
       return src
     }
 
-    // If it's a full URL, download it
+    // If it's a full URL, skip (we only process local files)
     if (src.startsWith('http://') || src.startsWith('https://')) {
-      console.log(`   📥 Downloading from URL: ${src}`)
-      return await downloadImageAsBase64(src)
+      console.log(`   ⏭️  Skipping URL (alleen lokale bestanden): ${src}`)
+      return null
     }
 
-    // For relative paths, download ALLEEN van live server
-    let filePath = src
+    // Find local file matching database path
+    const localFilePath = findLocalFile(src, localBasePath)
     
-    // Remove leading slash if present
-    if (filePath.startsWith('/')) {
-      filePath = filePath.substring(1)
+    if (!localFilePath) {
+      console.log(`   ❌ Lokale bestand niet gevonden voor: ${src}`)
+      return null
     }
 
-    // Download ALLEEN van live server - geen lokale bestanden!
-    const liveServerUrl = `https://zelfontspanners.nl/${filePath}`
-    console.log(`   🌐 Downloading van live server: ${liveServerUrl}`)
+    console.log(`   📁 Gevonden lokaal: ${localFilePath}`)
     try {
-      return await downloadImageAsBase64(liveServerUrl)
+      return await readLocalFileAsBase64(localFilePath)
     } catch (error: any) {
-      console.log(`   ❌ Bestand niet gevonden op server: ${filePath}`)
-      console.log(`   ⚠️  Upload dit bestand eerst naar de server voordat je converteert!`)
+      console.log(`   ❌ Kon lokaal bestand niet lezen: ${error.message}`)
       return null
     }
   } catch (error: any) {
@@ -113,6 +178,19 @@ async function convertImageToBase64(src: string): Promise<string | null> {
 
 async function convertAllPhotosToBase64() {
   console.log('🚀 Start conversie van foto\'s naar base64...\n')
+
+  // Lokale map met foto's
+  const localBasePath = 'C:\\Users\\jrdhn\\Desktop\\zelfontspanners-statische-fotos'
+  
+  // Check if local path exists
+  if (!fs.existsSync(localBasePath)) {
+    console.error(`❌ Lokale map niet gevonden: ${localBasePath}`)
+    console.error(`   Zorg dat de map bestaat en alle foto's bevat!`)
+    process.exit(1)
+  }
+
+  console.log(`📁 Lokale map: ${localBasePath}`)
+  console.log(`✅ Map gevonden!\n`)
 
   // Fetch all portfolio photos that are not yet base64
   const { data: allPhotos, error: fetchError } = await supabase
@@ -156,7 +234,7 @@ async function convertAllPhotosToBase64() {
     console.log(`🔄 Foto ID ${photo.id} (${photo.member_name}): ${src.substring(0, 50)}...`)
 
     try {
-      const base64Src = await convertImageToBase64(src)
+      const base64Src = await convertImageToBase64(src, localBasePath)
 
       if (!base64Src) {
         console.log(`   ⚠️  Kon foto niet converteren, overslaan`)
@@ -183,8 +261,8 @@ async function convertAllPhotosToBase64() {
         converted++
       }
 
-      // Small delay to avoid overwhelming the server
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Small delay to avoid overwhelming
+      await new Promise(resolve => setTimeout(resolve, 50))
 
     } catch (error: any) {
       console.error(`   ❌ Fout:`, error.message)
