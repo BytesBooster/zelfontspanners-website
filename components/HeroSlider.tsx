@@ -33,12 +33,25 @@ export function HeroSlider() {
         
         console.log('[HeroSlider] Loaded photos from API:', photos.length)
         
-        // Extract image sources and ensure they load from server, not local
+        // Extract image sources - handle both base64 and file paths
         const imageSrcs = photos
           .map(photo => {
             let src = photo.src
+            
+            // If it's base64, use it directly
+            if (src && src.startsWith('data:image')) {
+              console.log('[HeroSlider] Using base64 image')
+              return src
+            }
+            
+            // If it's already a full URL, use it directly
+            if (src && src.startsWith('http')) {
+              console.log('[HeroSlider] Using full URL:', src)
+              return src
+            }
+            
             // If it's a local path (images/portfolio/...), load from live server
-            if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+            if (src && !src.startsWith('/') && !src.startsWith('data:')) {
               // In development, load from live server; in production, use relative path
               if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
                 // Development mode - load from live server
@@ -50,7 +63,16 @@ export function HeroSlider() {
                 src = src.startsWith('/') ? src : '/' + src
                 console.log('[HeroSlider] Production mode - using relative path:', src)
               }
+            } else if (src && src.startsWith('/')) {
+              // Already has leading slash, use as is in production
+              if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.'))) {
+                // Development mode - load from live server
+                const cleanSrc = src.substring(1) // Remove leading slash
+                src = `https://zelfontspanners.nl/${cleanSrc}`
+                console.log('[HeroSlider] Development mode - using live server URL:', src)
+              }
             }
+            
             return src
           })
           .filter(Boolean)

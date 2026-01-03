@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
       .filter((photo: any) => {
         // Skip hidden photos
         if (hiddenSrcs.has(photo.src)) return false
-        // Skip base64 images (user uploads) for hero slider
-        if (photo.src && photo.src.startsWith('data:image')) return false
+        // Include ALL photos - both static files and base64 (user uploads)
+        // Base64 images are fine for hero slider
         return true
       })
 
