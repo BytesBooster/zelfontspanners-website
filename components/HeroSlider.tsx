@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 
 interface PortfolioPhoto {
   src: string
@@ -143,15 +142,22 @@ export function HeroSlider() {
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
             style={{ display: index === currentSlide ? 'block' : 'none' }}
           >
-            <Image
+            <img
               src={src}
               alt={`Hero slide ${index + 1}`}
-              fill
-              style={{ objectFit: 'cover' }}
-              priority={index === 0}
-              unoptimized
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover',
+                display: 'block'
+              }}
               onError={(e) => {
                 console.error('[HeroSlider] Error loading image:', src, e)
+                // Hide broken image
+                const target = e.target as HTMLImageElement
+                if (target) {
+                  target.style.display = 'none'
+                }
               }}
               onLoad={() => {
                 console.log('[HeroSlider] Image loaded successfully:', src)
