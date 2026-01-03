@@ -1,15 +1,19 @@
 /**
  * Script om alle portfolio foto's te converteren naar base64 en op te slaan in de database
  * 
+ * BELANGRIJK: Dit script gebruikt GEEN lokale bestanden - alles wordt gedownload van de live server!
+ * 
  * Dit script:
  * 1. Leest alle foto's uit de database die nog relative_path zijn
- * 2. Laadt de foto's van de server (of lokaal)
+ * 2. Download de foto's VAN DE LIVE SERVER (https://zelfontspanners.nl)
  * 3. Converteert ze naar base64
  * 4. Update de database met de base64 data
  * 
+ * Na dit script staan alle foto's als base64 in de database - geen serverbestanden meer nodig!
+ * 
  * Gebruik:
  * 1. Zorg dat NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_ANON_KEY zijn ingesteld
- * 2. Run: npx tsx scripts/convert-photos-to-base64.ts
+ * 2. Run: npm run convert-photos
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -18,6 +22,9 @@ import * as path from 'path'
 import dotenv from 'dotenv'
 import https from 'https'
 import http from 'http'
+
+// BELANGRIJK: Dit script download ALLE foto's van de live server
+// Geen lokale bestanden worden gebruikt - alles komt uit de database en wordt naar base64 geconverteerd
 
 // Load environment variables
 const envPath = path.join(process.cwd(), '.env.local')
