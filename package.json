@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "start:network": "next start -H 0.0.0.0",
-    "lint": "next lint"
+    "lint": "next lint",
+    "convert-photos": "tsx scripts/convert-photos-to-base64.ts",
+    "migrate-portfolios": "tsx scripts/migrate-portfolios-to-db.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
