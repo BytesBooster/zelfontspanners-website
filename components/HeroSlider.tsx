@@ -17,59 +17,79 @@ export function HeroSlider() {
   const [workingImages, setWorkingImages] = useState<string[]>([])
 
   // Load random portfolio photos from database
-  useEffect(() => {
-    async function loadRandomPhotos() {
-      try {
-        const response = await fetch('/api/portfolio/random?count=10')
-        if (!response.ok) {
-          console.error('[HeroSlider] Error loading random photos:', response.statusText)
-          // Fallback to empty array
-          setHeroImages([])
-          setIsLoading(false)
-          return
+  const loadRandomPhotos = async () => {
+    try {
+      console.log('[HeroSlider] Fetching random photos from API...')
+      const response = await fetch('/api/portfolio/random?count=10')
+      
+      if (!response.ok) {
+        console.error('[HeroSlider] Error loading random photos:', response.status, response.statusText)
+        try {
+          const errorData = await response.json()
+          console.error('[HeroSlider] Error response:', errorData)
+        } catch (e) {
+          const errorText = await response.text()
+          console.error('[HeroSlider] Error response text:', errorText)
         }
-        
-        const data = await response.json()
-        const photos: PortfolioPhoto[] = data.photos || []
-        
-        console.log('[HeroSlider] Loaded photos from API:', photos.length)
-        
-        // Extract image sources - API now returns only base64 images from database
-        const imageSrcs = photos
-          .map(photo => {
-            const src = photo.src
-            
-            // API should only return base64 images now
-            if (src && src.startsWith('data:image')) {
-              return src
-            }
-            
-            // Fallback for any non-base64 images (shouldn't happen, but just in case)
-            if (src && src.startsWith('http')) {
-              console.log('[HeroSlider] Warning: Received non-base64 URL:', src)
-              return src
-            }
-            
-            // Skip relative paths (these shouldn't be returned by API anymore)
-            if (src && !src.startsWith('data:image') && !src.startsWith('http')) {
-              console.log('[HeroSlider] Warning: Skipping relative path (should be base64):', src)
-              return null
-            }
-            
-            return src
-          })
-          .filter(Boolean) as string[]
-        
-        console.log('[HeroSlider] Final image sources:', imageSrcs)
-        setHeroImages(imageSrcs)
-      } catch (error) {
-        console.error('Error loading random portfolio photos:', error)
         setHeroImages([])
-      } finally {
         setIsLoading(false)
+        return
       }
+      
+      const data = await response.json()
+      const photos: PortfolioPhoto[] = data.photos || []
+      
+      console.log('[HeroSlider] Loaded photos from API:', photos.length)
+      if (photos.length > 0) {
+        console.log('[HeroSlider] First photo sample:', {
+          hasSrc: !!photos[0].src,
+          srcType: photos[0].src ? (photos[0].src.startsWith('data:image') ? 'base64' : 'other') : 'none',
+          srcPreview: photos[0].src ? photos[0].src.substring(0, 50) + '...' : 'none'
+        })
+      } else {
+        console.warn('[HeroSlider] No photos returned from API!')
+      }
+      
+      // Extract image sources - API now returns only base64 images from database
+      const imageSrcs = photos
+        .map(photo => {
+          const src = photo.src
+          
+          // API should only return base64 images now
+          if (src && src.startsWith('data:image')) {
+            return src
+          }
+          
+          // Fallback for any non-base64 images (shouldn't happen, but just in case)
+          if (src && src.startsWith('http')) {
+            console.log('[HeroSlider] Warning: Received non-base64 URL:', src)
+            return src
+          }
+          
+          // Skip relative paths (these shouldn't be returned by API anymore)
+          if (src && !src.startsWith('data:image') && !src.startsWith('http')) {
+            console.log('[HeroSlider] Warning: Skipping relative path (should be base64):', src)
+            return null
+          }
+          
+          return src
+        })
+        .filter(Boolean) as string[]
+      
+      console.log('[HeroSlider] Final image sources count:', imageSrcs.length)
+      if (imageSrcs.length > 0) {
+        console.log('[HeroSlider] First image src preview:', imageSrcs[0].substring(0, 100) + '...')
+      }
+      setHeroImages(imageSrcs)
+    } catch (error) {
+      console.error('[HeroSlider] Error loading random portfolio photos:', error)
+      setHeroImages([])
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     loadRandomPhotos()
   }, [])
 
